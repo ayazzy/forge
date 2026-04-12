@@ -21,10 +21,10 @@ Script:
 ${data.script}
 Return ONLY valid JSON:
 {
-  "musicBed": [{"timestamp":"0:00","mood":"describe mood","description":"what the music should feel like using period-appropriate instruments for the era","notes":"tempo, BPM, specific historical instruments from the era and region, duration until next cue","sunoPrompt":"ready-to-paste Suno prompt optimized for this mood with period-accurate instrumentation","source":"Suno"}],
-  "ambientLayer": [{"timestamp":"0:00","environment":"specific environment","sounds":"specific ambient elements","notes":"volume guidance, duration","source":"Freesound"}],
-  "effects": [{"timestamp":"approx within ${totalMins}","trigger":"the exact line or moment","sound":"specific sound effect","purpose":"why this lands here","source":"Freesound"}],
-  "coldOpen": {"duration":"seconds of pre-narration atmosphere e.g. 3s","sound":"specific ambient sound before first word","mood":"emotional register","instruction":"what to do in the editor","source":"Freesound or Suno"},
+  "musicBed": [{"timestamp":"0:00","mood":"describe mood","description":"what the music should feel like using period-appropriate instruments for the era","notes":"tempo, BPM, specific historical instruments from the era and region, duration until next cue","musicPrompt":"AI music generation prompt optimized for this mood with period-accurate instrumentation","source":"AI music tool"}],
+  "ambientLayer": [{"timestamp":"0:00","environment":"specific environment","sounds":"specific ambient elements","notes":"volume guidance, duration","source":"sound library"}],
+  "effects": [{"timestamp":"approx within ${totalMins}","trigger":"the exact line or moment","sound":"specific sound effect","purpose":"why this lands here","source":"sound library"}],
+  "coldOpen": {"duration":"seconds of pre-narration atmosphere e.g. 3s","sound":"specific ambient sound before first word","mood":"emotional register","instruction":"what to do in the editor","source":"sound library"},
   "mixingGuide": {"narration":"0 to -6dB — front and center","musicBed":"-18 to -24dB — felt not heard","ambientLayer":"-24 to -30dB — atmospheric background","soundEffects":"-12 to -18dB — punchy but not jarring"}
 }
 CRITICAL: All timestamps must be within the ${totalMins} video duration.

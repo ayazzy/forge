@@ -187,7 +187,7 @@ Return ONLY valid JSON:
                   style={{ ...S.input, flex: 1, fontFamily: "monospace", fontSize: "12px", background: COLORS.surface }}
                   value={v.voiceId}
                   onChange={e => updateVoice(v.id, "voiceId", e.target.value)}
-                  placeholder="Paste ElevenLabs Voice ID"
+                  placeholder="Paste Voice ID"
                 />
                 <button
                   onClick={() => setShowSettings(showSettings === v.id ? null : v.id)}
@@ -200,7 +200,7 @@ Return ONLY valid JSON:
                 )}
               </div>
               <div style={{ fontSize: "11px", color: COLORS.textTertiary, padding: "0 14px 10px 28px" }}>
-                Find your Voice ID in ElevenLabs → Voices → click your voice → ID
+                Find your Voice ID in your account → Voices → click your voice → ID
               </div>
               {showSettings === v.id && (
                 <div style={{ padding: "14px 20px", borderTop: `1px solid ${COLORS.border}`, display: "flex", flexDirection: "column", gap: "14px", background: COLORS.surface }}>
@@ -392,7 +392,7 @@ Return ONLY valid JSON:
               style={{ ...S.btnPrimary(generatingAll || allGenerated), flex: 2 }}
               onClick={() => {
                 const remaining = segments.filter(s => !audioUrls[s.id]).length;
-                if (remaining > 0 && !window.confirm(`Generate ${remaining} remaining segment${remaining > 1 ? "s" : ""}? This will use ElevenLabs credits and may take ${Math.round(remaining * 1.5)} minutes.`)) return;
+                if (remaining > 0 && !window.confirm(`Generate ${remaining} remaining segment${remaining > 1 ? "s" : ""}? This may take ${Math.round(remaining * 1.5)} minutes.`)) return;
                 generateAll();
               }}
               disabled={generatingAll || allGenerated}

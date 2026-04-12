@@ -187,7 +187,7 @@ function Stage7({ data, onApprove, isComplete, onBackToSummary }) {
                   ) : (
                     <div style={{ textAlign: "center", padding: "20px" }}>
                       <div style={{ fontSize: "12px", color: COLORS.textTertiary, fontStyle: "italic" }}>
-                        No image generated — use the prompt below in Midjourney or switch to Auto in Visuals
+                        No image generated — go back to Visuals to generate one
                       </div>
                     </div>
                   )}

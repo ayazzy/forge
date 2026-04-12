@@ -90,7 +90,7 @@ export default function Landing() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {[
               { icon: '⏱', title: 'Hours wasted per video', desc: 'Research, scripting, voiceover, images, editing — each in a different tool with no connection between them.' },
-              { icon: '🔀', title: 'Constant context switching', desc: 'Copy-pasting between Claude, ElevenLabs, Midjourney, Suno, CapCut. Every switch breaks your flow.' },
+              { icon: '🔀', title: 'Constant context switching', desc: 'Copy-pasting between five different AI tools with no connection between them. Every switch breaks your flow.' },
               { icon: '📉', title: 'Inconsistent output', desc: 'Without a system, every video starts from scratch. Quality varies, style drifts, momentum dies.' },
             ].map((item, i) => (
               <div key={i} style={{
@@ -216,13 +216,13 @@ export default function Landing() {
               {
                 name: 'Pro', price: '$49', period: '/month',
                 desc: 'For serious creators',
-                features: ['Everything in Starter', 'Hosted Claude + Ideogram APIs', 'No API keys needed', 'Trend research page', 'Priority support'],
+                features: ['Everything in Starter', 'Hosted AI APIs — no keys needed', 'Full trend research', 'Priority support'],
                 cta: 'Start Pro', highlighted: true,
               },
               {
                 name: 'Studio', price: '$99', period: '/month',
                 desc: 'For power creators',
-                features: ['Everything in Pro', 'Hosted ElevenLabs API', 'In-app music generation', 'Higher usage limits', 'Team seats (coming soon)'],
+                features: ['Everything in Pro', 'Hosted voice AI', 'In-app music generation', 'Higher usage limits', 'Team seats (coming soon)'],
                 cta: 'Start Studio', highlighted: false,
               },
             ].map((plan, i) => (

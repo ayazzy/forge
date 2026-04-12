@@ -108,7 +108,7 @@ export default function Settings() {
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {[
               { label: "Claude Calls", used: 0, limit: 500 },
-              { label: "ElevenLabs Characters", used: 0, limit: 100000 },
+              { label: "Voice Characters", used: 0, limit: 100000 },
               { label: "Images", used: 0, limit: 200 },
             ].map((m) => (
               <div key={m.label}>
@@ -133,8 +133,8 @@ export default function Settings() {
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {[
               { label: "Anthropic API Key", placeholder: "sk-ant-..." },
-              { label: "ElevenLabs API Key", placeholder: "sk_..." },
-              { label: "Ideogram API Key", placeholder: "..." },
+              { label: "Voice API Key", placeholder: "sk_..." },
+              { label: "Image API Key", placeholder: "..." },
             ].map((k) => (
               <div key={k.label}>
                 <label style={labelStyle}>{k.label}</label>

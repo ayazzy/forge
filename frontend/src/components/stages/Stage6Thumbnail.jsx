@@ -99,11 +99,11 @@ Return ONLY valid JSON:
                   )}
                 </div>
 
-                {/* Midjourney prompt */}
+                {/* Image prompt */}
                 <div style={{ marginBottom: "12px" }}>
-                  <div style={S.label}>Midjourney Prompt</div>
+                  <div style={S.label}>Image Prompt</div>
                   <div style={{ ...S.chunk, fontSize: "11px", lineHeight: "1.6" }}>
-                    /imagine prompt: {c.imagePrompt}
+                    {c.imagePrompt}
                   </div>
                   <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
                     <button

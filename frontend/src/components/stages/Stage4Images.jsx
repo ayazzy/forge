@@ -106,8 +106,8 @@ Return ONLY valid JSON:
   const allImages = prompts.length > 0 && prompts.every(p => !!images[p.imageNumber]);
 
   const MODES = [
-    { key: "manual", label: "Manual (Midjourney)" },
-    { key: "auto", label: "Auto (Ideogram API)" },
+    { key: "manual", label: "Manual (Copy prompt)" },
+    { key: "auto", label: "Auto (Generate)" },
   ];
 
   return (
@@ -115,7 +115,7 @@ Return ONLY valid JSON:
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0" }}>
         <div>
           <div style={S.sectionTitle}>Visuals</div>
-          <div style={S.sectionSubtitle}>Image prompts generated for key moments in your script. Copy to Midjourney or generate automatically.</div>
+          <div style={S.sectionSubtitle}>Image prompts generated for key moments in your script. Copy the prompt or generate automatically.</div>
         </div>
         {isComplete && (
           <button onClick={onBackToSummary} style={{ ...S.btnGhost, marginTop: "4px", whiteSpace: "nowrap" }}>
@@ -152,7 +152,7 @@ Return ONLY valid JSON:
       {prompts.length === 0 && !loading && (
         <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
           <div style={{ color: COLORS.textSecondary, fontSize: "14px", marginBottom: "20px" }}>
-            {mode === "auto" ? "Generate prompts and images automatically via Ideogram" : "Generate prompts to use in Midjourney"}
+            {mode === "auto" ? "Generate prompts and images automatically" : "Generate prompts to copy and use externally"}
           </div>
           <button style={{ ...S.btnPrimary(false), width: "auto", padding: "12px 40px" }} onClick={generatePrompts}>
             Generate Image Prompts
