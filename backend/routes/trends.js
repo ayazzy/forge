@@ -129,23 +129,26 @@ The views-to-subscriber ratio shows how much a video overperformed relative to t
 
 Identify 6 distinct topic opportunities based on patterns in this real data. Each opportunity should be a specific video idea this channel could make.
 
-Return ONLY valid JSON:
+IMPORTANT: Every field must be filled in. The "whyItWorks" field must be a non-empty string of 2 sentences that references specific numbers from the data.
+
+Return ONLY valid JSON matching this exact structure (all field names must match exactly):
 {
   "opportunities": [
     {
-      "topic": "Specific video topic idea",
-      "angle": "The specific angle or hook that makes this work",
-      "whyItWorks": "2 sentence explanation based on the actual data patterns",
+      "topic": "Specific video topic idea based on the data",
+      "angle": "The specific hook or angle that makes this work",
+      "whyItWorks": "2 sentences explaining why the data shows this is an opportunity. Reference specific numbers like ratios and view counts.",
       "competitionLevel": "Low",
-      "evidenceVideo": "Title of the best performing video that supports this opportunity",
-      "evidenceViews": 0,
-      "evidenceSubscribers": 0,
-      "evidenceRatio": 0.0
+      "evidenceVideo": "Exact title of the best performing video from the data above",
+      "evidenceViews": 125000,
+      "evidenceSubscribers": 8500,
+      "evidenceRatio": 14.7
     }
   ]
 }
 
-competitionLevel must be exactly one of: "Low", "Medium", "High"`,
+competitionLevel must be exactly one of: "Low", "Medium", "High"
+whyItWorks must never be empty or null — always write 2 full sentences referencing the actual data.`,
       }],
     }),
   });
@@ -153,6 +156,7 @@ competitionLevel must be exactly one of: "Low", "Medium", "High"`,
   const data = await res.json();
   const raw = data.content[0].text.trim();
   const { opportunities } = JSON.parse(raw.replace(/```json|```/g, '').trim());
+  console.log('Opportunities from Claude:', JSON.stringify(opportunities, null, 2));
   return opportunities;
 }
 

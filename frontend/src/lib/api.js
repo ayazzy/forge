@@ -162,6 +162,23 @@ export async function updateEpisode(id, data) {
   return res.json();
 }
 
+export async function getCachedTrends() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/trends`, { headers: { ...authHeader } });
+  if (!res.ok) throw new Error('Failed to fetch trends');
+  return res.json();
+}
+
+export async function refreshTrends() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/trends/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+  });
+  if (!res.ok) throw new Error('Failed to refresh trends');
+  return res.json();
+}
+
 export async function generateTrendingTopics(niche, channelDescription) {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/trends/generate`, {

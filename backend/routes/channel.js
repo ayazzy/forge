@@ -116,6 +116,17 @@ Generate exactly 5-6 moods that are specific and relevant to this channel's cont
       .single();
 
     if (error) throw error;
+
+    // Fire and forget — generate trending topics in the background
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    fetch(`${backendUrl}/api/trends/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': req.headers.authorization,
+      },
+    }).catch(e => console.warn('Background trend generation failed:', e));
+
     res.json(saved);
   } catch (e) {
     res.status(500).json({ error: e.message });
