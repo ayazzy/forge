@@ -48,8 +48,7 @@ export default function Trends() {
     setError(null);
     try {
       const data = await refreshTrends();
-      console.log('Refreshed topics sample:', JSON.stringify(data.topics?.[0], null, 2));
-      setTopics(data.topics);
+      setTopics(data.topics.map(normalizeTopic));
       setGeneratedAt(data.generated_at);
       setIsStale(false);
     } catch (e) {
@@ -202,7 +201,7 @@ export default function Trends() {
                         Why this works
                       </div>
                       <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.6' }}>
-                        {result.whyItWorks || result.why || result.why_it_works || result.reasoning || result.reason || ''}
+                        {result.whyItWorks}
                       </div>
                     </div>
 
