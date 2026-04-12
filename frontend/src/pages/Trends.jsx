@@ -1,97 +1,124 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/ui/AppLayout';
 import { useChannelProfile } from '../hooks/useChannelProfile';
-import { generateTrendingTopics, validateTopic } from '../lib/api';
+import { getCachedTrends, refreshTrends, validateTopic } from '../lib/api';
 
-const ACCENT = '#e03535';
-
-function formatViews(n) {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `${Math.round(n / 1000)}K`;
-  return n.toString();
-}
+const fmtViews = (v) =>
+  v > 1000000 ? `${(v / 1000000).toFixed(1)}M` : v > 1000 ? `${Math.round(v / 1000)}K` : (v || 0).toString();
 
 export default function Trends() {
   const navigate = useNavigate();
   const { channelProfile } = useChannelProfile();
   const [mode, setMode] = useState('browse');
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
+  const [topics, setTopics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState(null);
+  const [isStale, setIsStale] = useState(false);
   const [validation, setValidation] = useState(null);
+  const [validating, setValidating] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
   const [error, setError] = useState(null);
 
-  const channelDesc = channelProfile?.description || '';
-  const channelName = channelProfile?.channel_name || 'your channel';
+  useEffect(() => {
+    loadTopics();
+  }, []);
 
-  const handleGenerate = async () => {
+  const loadTopics = async () => {
     setLoading(true);
-    setError(null);
-    setResults(null);
     try {
-      const data = await generateTrendingTopics(null, channelDesc);
-      setResults(data.results);
+      const data = await getCachedTrends();
+      if (data.topics?.length > 0) {
+        setTopics(data.topics);
+        setGeneratedAt(data.generated_at);
+        setIsStale(data.is_stale);
+      } else {
+        await handleRefresh(true);
+      }
     } catch (e) {
-      setError('Failed to generate topics. Try again.');
+      setError('Failed to load topics');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async (silent = false) => {
+    if (!silent) setRefreshing(true);
+    setError(null);
+    try {
+      const data = await refreshTrends();
+      setTopics(data.topics);
+      setGeneratedAt(data.generated_at);
+      setIsStale(false);
+    } catch (e) {
+      setError('Failed to refresh topics');
+    } finally {
+      if (!silent) setRefreshing(false);
     }
   };
 
   const handleValidate = async () => {
     if (!customTopic.trim()) return;
-    setLoading(true);
-    setError(null);
+    setValidating(true);
     setValidation(null);
+    setError(null);
     try {
-      const data = await validateTopic(customTopic, channelDesc);
+      const data = await validateTopic(customTopic, channelProfile?.description || '');
       setValidation(data);
     } catch (e) {
-      setError('Failed to validate topic. Try again.');
+      setError('Failed to validate topic');
     } finally {
-      setLoading(false);
+      setValidating(false);
     }
   };
 
-  const sendToPipeline = (topic) => {
-    navigate(`/pipeline?topic=${encodeURIComponent(topic)}`);
-  };
-
-  const card = {
-    background: '#1a1a1a',
-    border: '1px solid #222',
-    borderRadius: '12px',
-    padding: '20px',
-    marginBottom: '12px',
-  };
+  const sendToPipeline = (topic) => navigate(`/pipeline?topic=${encodeURIComponent(topic)}`);
+  const channelName = channelProfile?.channel_name || 'your channel';
 
   return (
     <AppLayout>
       <div style={{ padding: '32px 40px', width: '100%' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>
-            Trend Research
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
+          <div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>Trend Research</div>
+            <div style={{ fontSize: '13px', color: '#555' }}>
+              Real YouTube data for {channelName} — sorted by views-to-subscriber ratio.
+            </div>
           </div>
-          <div style={{ fontSize: '13px', color: '#555' }}>
-            Find what's worth making for {channelName} — backed by real YouTube data.
-          </div>
+          {mode === 'browse' && topics.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {generatedAt && (
+                <div style={{ fontSize: '11px', color: '#444' }}>
+                  {isStale ? '⚠ May be outdated' : `Updated ${new Date(generatedAt).toLocaleDateString()}`}
+                </div>
+              )}
+              <button
+                onClick={() => handleRefresh(false)}
+                disabled={refreshing}
+                style={{
+                  background: 'none', border: '1px solid #333', color: '#888',
+                  padding: '8px 16px', borderRadius: '8px', fontSize: '12px',
+                  cursor: refreshing ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {refreshing ? 'Refreshing...' : '↻ Refresh'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Mode toggle */}
-        <div style={{
-          display: 'flex', gap: '4px', background: '#1a1a1a', padding: '4px',
-          borderRadius: '10px', width: 'fit-content', marginBottom: '28px', border: '1px solid #222',
-        }}>
+        <div style={{ display: 'flex', gap: '4px', background: '#1a1a1a', padding: '4px', borderRadius: '10px', width: 'fit-content', marginBottom: '28px', border: '1px solid #222' }}>
           {[
-            { key: 'browse', label: '✦ Find ideas for me' },
+            { key: 'browse', label: '✦ Ideas for me' },
             { key: 'validate', label: '⟳ Validate my idea' },
           ].map(m => (
             <button
               key={m.key}
-              onClick={() => { setMode(m.key); setResults(null); setValidation(null); setError(null); }}
+              onClick={() => { setMode(m.key); setValidation(null); setError(null); }}
               style={{
                 padding: '8px 20px', borderRadius: '8px', border: 'none',
                 background: mode === m.key ? '#111' : 'transparent',
@@ -105,141 +132,145 @@ export default function Trends() {
           ))}
         </div>
 
+        {error && (
+          <div style={{ background: '#1a0a0a', border: '1px solid #3a1515', borderRadius: '8px', padding: '12px 16px', color: '#e03535', fontSize: '13px', marginBottom: '16px' }}>
+            {error}
+          </div>
+        )}
+
         {/* Browse mode */}
         {mode === 'browse' && (
-          <div>
-            {!results && !loading && (
-              <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
-                <div style={{ fontSize: '32px', marginBottom: '16px' }}>📊</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>
-                  Find your next video idea
-                </div>
-                <div style={{ fontSize: '13px', color: '#555', marginBottom: '28px', maxWidth: '400px', margin: '0 auto 28px' }}>
-                  Forge will generate 6 topic ideas for {channelName} and cross-reference each one with real YouTube data to find the best opportunities.
-                </div>
-                <button
-                  onClick={handleGenerate}
-                  style={{
-                    background: ACCENT, color: '#fff', border: 'none',
-                    padding: '12px 32px', borderRadius: '8px', fontSize: '14px',
-                    fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Find ideas →
-                </button>
-              </div>
-            )}
-
-            {loading && (
-              <div style={{ ...card, textAlign: 'center', padding: '48px' }}>
-                <div style={{ fontSize: '13px', color: '#555', marginBottom: '8px' }}>
-                  Generating ideas and checking YouTube data...
-                </div>
-                <div style={{ fontSize: '11px', color: '#333' }}>This takes about 15 seconds</div>
-              </div>
-            )}
-
-            {error && (
-              <div style={{ ...card, color: ACCENT, fontSize: '13px' }}>{error}</div>
-            )}
-
-            {results && (
+          <>
+            {(loading || refreshing) && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '12px', color: '#555' }}>
-                    {results.length} ideas — sorted by opportunity
-                  </div>
-                  <button
-                    onClick={handleGenerate}
-                    style={{
-                      background: 'none', border: '1px solid #333', color: '#888',
-                      padding: '6px 16px', borderRadius: '6px', fontSize: '11px',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    Regenerate
-                  </button>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {results.map((result, i) => (
-                    <div key={i} style={{ ...card, marginBottom: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', flex: 1, marginRight: '12px', lineHeight: '1.4' }}>
-                          {result.topic}
-                        </div>
-                        <div style={{
-                          fontSize: '10px', fontWeight: '700', padding: '3px 10px',
-                          borderRadius: '20px', flexShrink: 0,
-                          background: `${result.verdictColor}15`,
-                          color: result.verdictColor,
-                          border: `1px solid ${result.verdictColor}30`,
-                        }}>
-                          {result.verdict}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-                        {[
-                          { label: 'Avg views', value: formatViews(result.avgViews) },
-                          { label: 'Competition', value: result.competition.level, color: result.competition.color },
-                          { label: 'Videos found', value: result.videos.length.toString() },
-                        ].map((stat, j) => (
-                          <div key={j} style={{ background: '#111', borderRadius: '6px', padding: '8px 10px' }}>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: stat.color || '#fff', marginBottom: '2px' }}>{stat.value}</div>
-                            <div style={{ fontSize: '10px', color: '#444' }}>{stat.label}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {result.topVideoTitle && (
-                        <div style={{ background: '#111', borderRadius: '6px', padding: '8px 10px', marginBottom: '12px' }}>
-                          <div style={{ fontSize: '9px', color: '#444', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top performing video</div>
-                          <div style={{ fontSize: '11px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {result.topVideoTitle}
-                          </div>
-                          <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>
-                            {formatViews(result.topVideoViews)} views
-                          </div>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => sendToPipeline(result.topic)}
-                          style={{
-                            flex: 1, background: ACCENT, color: '#fff', border: 'none',
-                            padding: '9px 16px', borderRadius: '7px', fontSize: '12px',
-                            fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
-                          }}
-                        >
-                          Use in pipeline →
-                        </button>
-                        <a
-                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(result.topic)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            background: '#222', color: '#888', border: '1px solid #333',
-                            padding: '9px 14px', borderRadius: '7px', fontSize: '12px',
-                            textDecoration: 'none', display: 'flex', alignItems: 'center',
-                          }}
-                        >
-                          YT ↗
-                        </a>
-                      </div>
+                <style>{`@keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }`}</style>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <div key={i} style={{
+                      background: '#1a1a1a', border: '1px solid #222',
+                      borderLeft: '3px solid #333', borderRadius: '12px', padding: '20px',
+                    }}>
+                      <div style={{ height: '16px', background: '#222', borderRadius: '4px', marginBottom: '8px', animation: 'pulse 1.5s ease infinite' }} />
+                      <div style={{ height: '12px', background: '#222', borderRadius: '4px', width: '70%', marginBottom: '20px', animation: 'pulse 1.5s ease infinite' }} />
+                      <div style={{ height: '60px', background: '#222', borderRadius: '8px', marginBottom: '16px', animation: 'pulse 1.5s ease infinite' }} />
+                      <div style={{ height: '36px', background: '#222', borderRadius: '8px', animation: 'pulse 1.5s ease infinite' }} />
                     </div>
                   ))}
                 </div>
               </>
             )}
-          </div>
+
+            {!loading && !refreshing && topics.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {topics.map((result, i) => (
+                  <div key={i} style={{
+                    background: '#1a1a1a',
+                    border: '1px solid #222',
+                    borderLeft: `3px solid ${result.competitionColor}`,
+                    borderRadius: '12px',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                  }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', lineHeight: '1.4', marginBottom: '6px' }}>
+                          {result.topic}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#555', lineHeight: '1.5' }}>
+                          {result.angle}
+                        </div>
+                      </div>
+                      <div style={{
+                        fontSize: '10px', fontWeight: '700', padding: '4px 10px',
+                        borderRadius: '20px', flexShrink: 0,
+                        background: `${result.competitionColor}15`,
+                        color: result.competitionColor,
+                        border: `1px solid ${result.competitionColor}30`,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {result.competitionLevel} competition
+                      </div>
+                    </div>
+
+                    {/* Why it works */}
+                    <div style={{ background: '#111', borderRadius: '8px', padding: '12px 14px' }}>
+                      <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>
+                        Why this works
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.6' }}>
+                        {result.whyItWorks}
+                      </div>
+                    </div>
+
+                    {/* Evidence */}
+                    {result.evidenceVideo && (
+                      <div style={{ borderTop: '1px solid #222', paddingTop: '12px' }}>
+                        <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', fontWeight: '600' }}>
+                          Evidence
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          "{result.evidenceVideo}"
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {[
+                            { label: 'views', value: fmtViews(result.evidenceViews) },
+                            { label: 'subscribers', value: result.evidenceSubscribers > 1000 ? `${Math.round(result.evidenceSubscribers / 1000)}K` : (result.evidenceSubscribers || 0).toString() },
+                            { label: 'ratio', value: `${result.evidenceRatio}x`, highlight: true },
+                          ].map((stat, j) => (
+                            <div key={j} style={{
+                              flex: 1, background: stat.highlight ? '#1a1a2a' : '#111',
+                              border: stat.highlight ? '1px solid #333' : 'none',
+                              borderRadius: '6px', padding: '7px', textAlign: 'center',
+                            }}>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: stat.highlight ? '#818cf8' : '#fff' }}>
+                                {stat.value}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#444' }}>{stat.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                      <button
+                        onClick={() => sendToPipeline(result.topic)}
+                        style={{
+                          flex: 1, background: '#e03535', color: '#fff', border: 'none',
+                          padding: '10px 16px', borderRadius: '8px', fontSize: '12px',
+                          fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        Use in pipeline →
+                      </button>
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(result.topic)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          background: '#222', color: '#888', border: '1px solid #333',
+                          padding: '10px 14px', borderRadius: '8px', fontSize: '12px',
+                          textDecoration: 'none', display: 'flex', alignItems: 'center',
+                        }}
+                      >
+                        YT ↗
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Validate mode */}
         {mode === 'validate' && (
           <div>
-            <div style={{ ...card, marginBottom: '16px' }}>
+            <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
               <div style={{ fontSize: '12px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
                 Your topic idea
               </div>
@@ -257,53 +288,66 @@ export default function Trends() {
                 />
                 <button
                   onClick={handleValidate}
-                  disabled={loading || !customTopic.trim()}
+                  disabled={validating || !customTopic.trim()}
                   style={{
-                    background: loading || !customTopic.trim() ? '#222' : ACCENT,
-                    color: loading || !customTopic.trim() ? '#555' : '#fff',
+                    background: validating || !customTopic.trim() ? '#222' : '#e03535',
+                    color: validating || !customTopic.trim() ? '#555' : '#fff',
                     border: 'none', padding: '11px 24px', borderRadius: '8px',
                     fontSize: '13px', fontWeight: '600',
-                    cursor: loading || !customTopic.trim() ? 'not-allowed' : 'pointer',
+                    cursor: validating || !customTopic.trim() ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit', whiteSpace: 'nowrap',
                   }}
                 >
-                  {loading ? 'Checking...' : 'Validate →'}
+                  {validating ? 'Checking...' : 'Validate →'}
                 </button>
               </div>
-              {loading && (
+              {validating && (
                 <div style={{ fontSize: '11px', color: '#444', marginTop: '10px' }}>
-                  Searching YouTube and analysing data... ~10 seconds
+                  Searching YouTube and analysing... ~10 seconds
                 </div>
               )}
             </div>
-
-            {error && (
-              <div style={{ ...card, color: ACCENT, fontSize: '13px' }}>{error}</div>
-            )}
 
             {validation && (() => {
               const rec = validation.analysis.recommendation;
               const isGood = rec === 'Make it';
               const isBad = rec === 'Skip it';
-              const borderColor = isGood ? '#14532d' : isBad ? '#3a1515' : '#3a2a00';
-              const bgColor = isGood ? '#0a2a1a' : isBad ? '#1a0a0a' : '#1a1500';
-              const recColor = isGood ? '#4ade80' : isBad ? '#e03535' : '#d97806';
-
+              const bg = isGood ? '#0a2a1a' : isBad ? '#1a0a0a' : '#1a1500';
+              const border = isGood ? '#14532d' : isBad ? '#3a1515' : '#3a2a00';
+              const tagBg = isGood ? '#4ade8020' : isBad ? '#e0353520' : '#d9780620';
+              const tagColor = isGood ? '#4ade80' : isBad ? '#e03535' : '#d97806';
               return (
                 <div>
-                  <div style={{ ...card, border: `1px solid ${borderColor}`, background: bgColor, marginBottom: '12px' }}>
+                  <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: '12px', padding: '20px', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', flex: 1, marginRight: '12px' }}>{validation.topic}</div>
-                      <div style={{
-                        fontSize: '13px', fontWeight: '700', padding: '6px 16px', borderRadius: '8px',
-                        background: `${recColor}20`, color: recColor, flexShrink: 0,
-                      }}>
+                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff' }}>{validation.topic}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', padding: '6px 16px', borderRadius: '8px', background: tagBg, color: tagColor }}>
                         {rec}
                       </div>
                     </div>
-                    <div style={{ fontSize: '13px', color: '#888', lineHeight: '1.6', marginBottom: validation.analysis.angle ? '12px' : 0 }}>
+                    <div style={{ fontSize: '13px', color: '#888', lineHeight: '1.6', marginBottom: '12px' }}>
                       {validation.analysis.reason}
                     </div>
+                    {validation.avgRatio > 0 && (
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                        {[
+                          { label: 'avg ratio', value: `${validation.avgRatio.toFixed(1)}x`, highlight: true },
+                          { label: 'avg views', value: fmtViews(validation.avgViews) },
+                          { label: 'videos found', value: (validation.videos?.length || 0).toString() },
+                        ].map((stat, j) => (
+                          <div key={j} style={{
+                            flex: 1, background: stat.highlight ? '#1a1a2a' : '#ffffff08',
+                            border: stat.highlight ? '1px solid #333' : '1px solid #ffffff10',
+                            borderRadius: '8px', padding: '10px', textAlign: 'center',
+                          }}>
+                            <div style={{ fontSize: '16px', fontWeight: '700', color: stat.highlight ? '#818cf8' : '#fff', marginBottom: '2px' }}>
+                              {stat.value}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#555' }}>{stat.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {validation.analysis.angle && (
                       <div style={{ background: '#ffffff08', borderRadius: '8px', padding: '12px 14px' }}>
                         <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Suggested angle</div>
@@ -312,46 +356,37 @@ export default function Trends() {
                     )}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
-                    {[
-                      { label: 'Videos found', value: validation.videos.length },
-                      { label: 'Avg views', value: formatViews(validation.avgViews) },
-                      { label: 'Competition', value: validation.competition.level, color: validation.competition.color },
-                    ].map((stat, i) => (
-                      <div key={i} style={{ ...card, marginBottom: 0, textAlign: 'center', padding: '16px' }}>
-                        <div style={{ fontSize: '22px', fontWeight: '700', color: stat.color || '#fff', marginBottom: '4px' }}>{stat.value}</div>
-                        <div style={{ fontSize: '11px', color: '#555' }}>{stat.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {validation.videos.length > 0 && (
-                    <div style={{ ...card, marginBottom: '12px' }}>
+                  {validation.videos?.length > 0 && (
+                    <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '20px', marginBottom: '12px' }}>
                       <div style={{ fontSize: '11px', color: '#555', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
                         Top videos on this topic
                       </div>
-                      {validation.videos.slice(0, 4).map((video, i) => (
+                      {validation.videos.slice(0, 5).map((video, i) => (
                         <a
                           key={i}
                           href={`https://www.youtube.com/watch?v=${video.videoId}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            display: 'flex', gap: '12px', padding: '10px 0',
-                            borderBottom: i < Math.min(validation.videos.length, 4) - 1 ? '1px solid #222' : 'none',
+                            display: 'flex', gap: '12px', padding: '10px 0', alignItems: 'center',
+                            borderBottom: i < validation.videos.length - 1 ? '1px solid #222' : 'none',
                             textDecoration: 'none',
                           }}
                         >
-                          {video.thumbnail && (
-                            <img src={video.thumbnail} alt="" style={{ width: '80px', height: '45px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
-                          )}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '12px', color: '#ccc', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {video.title}
                             </div>
                             <div style={{ fontSize: '11px', color: '#555' }}>
-                              {video.channel} · {formatViews(video.views)} views
+                              {video.channelName} · {fmtViews(video.views)} views · {video.subscribers > 1000 ? `${Math.round(video.subscribers / 1000)}K` : video.subscribers} subs
                             </div>
+                          </div>
+                          <div style={{
+                            fontSize: '12px', fontWeight: '700', color: '#818cf8',
+                            background: '#1a1a2a', border: '1px solid #333',
+                            padding: '4px 10px', borderRadius: '6px', flexShrink: 0,
+                          }}>
+                            {video.ratio}x
                           </div>
                         </a>
                       ))}
@@ -362,7 +397,7 @@ export default function Trends() {
                     <button
                       onClick={() => sendToPipeline(validation.topic)}
                       style={{
-                        flex: 1, background: ACCENT, color: '#fff', border: 'none',
+                        flex: 1, background: '#e03535', color: '#fff', border: 'none',
                         padding: '12px 24px', borderRadius: '8px', fontSize: '13px',
                         fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
                       }}

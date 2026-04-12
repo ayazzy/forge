@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getEpisodes } from '../lib/api';
+import { getEpisodes, getCachedTrends } from '../lib/api';
 import { useChannelProfile } from '../hooks/useChannelProfile';
 import AppLayout from '../components/ui/AppLayout';
 
@@ -8,12 +8,6 @@ const ACCENT = '#e03535';
 const STAGE_NAMES = ['Research', 'Story', 'Narration', 'Sound', 'Visuals', 'Assembly', 'Thumbnail', 'Publish'];
 const STAGE_ICONS = ['🔍', '✍️', '🎙️', '🎵', '🖼️', '🎬', '🎨', '📋'];
 
-const trendingTopics = [
-  { topic: 'The collapse of the Ottoman Empire', niche: 'History', heat: 'Trending' },
-  { topic: 'How fast fashion is destroying the environment', niche: 'Fashion', heat: 'Rising' },
-  { topic: 'Why the middle class is disappearing', niche: 'Finance', heat: 'Hot' },
-  { topic: 'The psychology of true crime addiction', niche: 'True Crime', heat: 'Trending' },
-];
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -38,6 +32,8 @@ export default function Dashboard() {
   const { channelProfile, hasProfile, loading: profileLoading } = useChannelProfile();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [loadingTrends, setLoadingTrends] = useState(true);
 
   useEffect(() => {
     if (!profileLoading && !hasProfile) navigate('/onboarding');
@@ -48,6 +44,13 @@ export default function Dashboard() {
       .then(setEpisodes)
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getCachedTrends()
+      .then(data => setTrendingTopics((data.topics || []).slice(0, 4)))
+      .catch(console.error)
+      .finally(() => setLoadingTrends(false));
   }, []);
 
   const thisMonth = new Date().toISOString().slice(0, 7);
@@ -300,36 +303,50 @@ export default function Dashboard() {
             <Link to="/trends" style={{ fontSize: '11px', color: ACCENT, textDecoration: 'none', fontWeight: '600' }}>See all →</Link>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-            {trendingTopics.map((t, i) => (
-              <Link
-                key={i}
-                to={`/pipeline?topic=${encodeURIComponent(t.topic)}`}
-                style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #222',
-                  borderRadius: '10px',
-                  padding: '14px 16px',
-                  textDecoration: 'none',
-                  display: 'block',
-                  transition: 'border-color 0.15s ease',
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = '#333'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = '#222'}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '9px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.niche}</div>
+            {loadingTrends ? (
+              [1, 2, 3, 4].map(i => (
+                <div key={i} style={{ background: '#1a1a1a', border: '1px solid #222', borderLeft: '3px solid #333', borderRadius: '10px', padding: '14px 16px', height: '90px', opacity: 0.5 }} />
+              ))
+            ) : trendingTopics.length > 0 ? (
+              trendingTopics.map((t, i) => (
+                <Link
+                  key={i}
+                  to={`/pipeline?topic=${encodeURIComponent(t.topic)}`}
+                  style={{ textDecoration: 'none', display: 'block' }}
+                >
                   <div style={{
-                    fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px',
-                    background: t.heat === 'Hot' ? '#2a1515' : t.heat === 'Rising' ? '#1a1a2a' : '#1a2a1a',
-                    color: t.heat === 'Hot' ? '#e03535' : t.heat === 'Rising' ? '#818cf8' : '#4ade80',
+                    background: '#1a1a1a',
+                    border: '1px solid #222',
+                    borderLeft: `3px solid ${t.competitionColor || '#444'}`,
+                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    height: '100%',
+                    transition: 'border-color 0.15s ease',
                   }}>
-                    {t.heat}
+                    <div style={{
+                      fontSize: '10px', fontWeight: '600', color: t.competitionColor || '#888',
+                      textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px',
+                    }}>
+                      {t.competitionLevel || 'Unknown'} competition
+                    </div>
+                    <div style={{
+                      fontSize: '12px', color: '#ccc', lineHeight: '1.4', marginBottom: '8px',
+                      overflow: 'hidden', display: '-webkit-box',
+                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }}>
+                      {t.topic}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#444' }}>
+                      {t.evidenceRatio ? `${t.evidenceRatio}x ratio · ` : ''}Use in pipeline →
+                    </div>
                   </div>
-                </div>
-                <div style={{ fontSize: '12px', color: '#ccc', lineHeight: '1.4', fontWeight: '500' }}>{t.topic}</div>
-                <div style={{ fontSize: '10px', color: '#444', marginTop: '8px' }}>Use in pipeline →</div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            ) : (
+              <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: '#444', padding: '16px 0' }}>
+                No topics yet — <Link to="/trends" style={{ color: ACCENT, textDecoration: 'none' }}>generate some →</Link>
+              </div>
+            )}
           </div>
         </div>
 
