@@ -210,7 +210,7 @@ export default function Pipeline() {
         completedStages={completedStages}
         onStageClick={setActiveStage}
       />
-      <div style={S.content}>
+      <div style={{ ...S.content, maxWidth: 'none', width: '100%' }}>
         {isComplete && activeStage >= 8 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center" }}>
             <div style={{ fontSize: "12px", color: COLORS.success, fontWeight: "600", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "16px" }}>Episode Complete</div>

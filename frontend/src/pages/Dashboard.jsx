@@ -85,7 +85,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '32px 40px', maxWidth: '1000px', width: '100%' }}>
+      <div style={{ padding: '32px 40px', width: '100%' }}>
 
         {/* Hero */}
         <div style={{ marginBottom: '24px' }}>
