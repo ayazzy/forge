@@ -1,0 +1,27 @@
+import { Routes, Route } from "react-router-dom";
+import Pipeline from "./pages/Pipeline";
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Dashboard from "./pages/Dashboard";
+import Pricing from "./pages/Pricing";
+import Settings from "./pages/Settings";
+import Trends from "./pages/Trends";
+import ProtectedRoute from "./components/ui/ProtectedRoute";
+import Onboarding from "./pages/Onboarding";
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/trends" element={<ProtectedRoute><Trends /></ProtectedRoute>} />
+    </Routes>
+  );
+}
