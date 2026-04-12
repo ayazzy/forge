@@ -111,27 +111,82 @@ export default function Onboarding() {
     return (
       <div style={containerStyle}>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>⚙️</div>
-          <div style={{ fontSize: '20px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>
-            Setting up {form.channel_name}...
+
+          {/* Progress bar */}
+          <div style={{ height: '2px', background: '#222', borderRadius: '1px', marginBottom: '32px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              background: ACCENT,
+              borderRadius: '1px',
+              animation: 'progressFill 12s ease-in-out forwards',
+            }} />
           </div>
-          <div style={{ fontSize: '13px', color: '#555', marginBottom: '32px' }}>
-            Forge is generating a custom production template for your channel. This takes about 10 seconds.
+
+          <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>
+            Setting up {form.channel_name}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
+          <div style={{ fontSize: '12px', color: '#555', marginBottom: '32px' }}>
+            Building your custom production template...
+          </div>
+
+          {/* Animated steps */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
             {[
               'Analysing your channel description',
               'Generating research approach',
-              'Crafting script style guide',
+              'Crafting your script style guide',
               'Configuring visual aesthetic',
-              'Building mood palette',
+              'Building your mood palette',
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#555' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
-                {item}
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  opacity: 0,
+                  animation: `fadeInStep 0.5s ease forwards ${i * 1.8}s`,
+                }}
+              >
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: '#1a1a1a',
+                  border: '1px solid #333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: '#444',
+                    animation: `dotPulse 1s ease infinite ${i * 1.8}s`,
+                  }} />
+                </div>
+                <div style={{ fontSize: '13px', color: '#888' }}>{item}</div>
               </div>
             ))}
           </div>
+
+          <style>{`
+            @keyframes progressFill {
+              from { width: 0%; }
+              to { width: 95%; }
+            }
+            @keyframes fadeInStep {
+              from { opacity: 0; transform: translateX(-8px); }
+              to { opacity: 1; transform: translateX(0); }
+            }
+            @keyframes dotPulse {
+              0%, 100% { background: #e03535; opacity: 1; }
+              50% { background: #e03535; opacity: 0.4; }
+            }
+          `}</style>
+
         </div>
       </div>
     );
