@@ -1,6 +1,9 @@
 import { supabase } from './supabase';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const rawBase = import.meta.env.VITE_API_URL || '';
+const API_BASE = rawBase && !rawBase.startsWith('http')
+  ? `https://${rawBase}`
+  : rawBase;
 
 async function getAuthHeader() {
   const { data: { session } } = await supabase.auth.getSession();
