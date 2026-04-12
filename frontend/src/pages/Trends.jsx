@@ -144,11 +144,11 @@ export default function Trends() {
             {(loading || refreshing) && (
               <>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }`}</style>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
                   {[1, 2, 3, 4, 5, 6].map(i => (
                     <div key={i} style={{
                       background: '#1a1a1a', border: '1px solid #222',
-                      borderLeft: '3px solid #333', borderRadius: '12px', padding: '20px',
+                      borderLeft: '3px solid #333', borderRadius: '12px', padding: '20px', minWidth: 0,
                     }}>
                       <div style={{ height: '16px', background: '#222', borderRadius: '4px', marginBottom: '8px', animation: 'pulse 1.5s ease infinite' }} />
                       <div style={{ height: '12px', background: '#222', borderRadius: '4px', width: '70%', marginBottom: '20px', animation: 'pulse 1.5s ease infinite' }} />
@@ -161,7 +161,7 @@ export default function Trends() {
             )}
 
             {!loading && !refreshing && topics.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'start' }}>
                 {topics.map((result, i) => (
                   <div key={i} style={{
                     background: '#1a1a1a',
@@ -172,6 +172,7 @@ export default function Trends() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '14px',
+                    minWidth: 0,
                   }}>
                     {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
@@ -209,15 +210,43 @@ export default function Trends() {
                     {result.evidenceVideo && (
                       <div style={{ borderTop: '1px solid #222', paddingTop: '12px' }}>
                         <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', fontWeight: '600' }}>
-                          Evidence
+                          Proof it works
                         </div>
-                        <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          "{result.evidenceVideo}"
-                        </div>
+                        <a
+                          href={`https://www.youtube.com/results?search_query=${encodeURIComponent(result.evidenceVideo)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ textDecoration: 'none', display: 'block', marginBottom: '10px' }}
+                        >
+                          <div style={{
+                            display: 'flex', gap: '10px', alignItems: 'center',
+                            background: '#111', borderRadius: '8px', padding: '10px',
+                            border: '1px solid #222',
+                          }}>
+                            <div style={{
+                              width: '48px', height: '36px', background: '#1a1a1a',
+                              borderRadius: '4px', flexShrink: 0, display: 'flex',
+                              alignItems: 'center', justifyContent: 'center',
+                              border: '1px solid #2a2a2a',
+                            }}>
+                              <span style={{ fontSize: '14px' }}>▶</span>
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{
+                                fontSize: '12px', color: '#ccc', lineHeight: '1.4',
+                                overflow: 'hidden', display: '-webkit-box',
+                                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                              }}>
+                                {result.evidenceVideo}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#555', flexShrink: 0 }}>↗</div>
+                          </div>
+                        </a>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           {[
                             { label: 'views', value: fmtViews(result.evidenceViews) },
-                            { label: 'subscribers', value: result.evidenceSubscribers > 1000 ? `${Math.round(result.evidenceSubscribers / 1000)}K` : (result.evidenceSubscribers || 0).toString() },
+                            { label: 'subs', value: result.evidenceSubscribers > 1000 ? `${Math.round(result.evidenceSubscribers / 1000)}K` : (result.evidenceSubscribers || 0).toString() },
                             { label: 'ratio', value: `${result.evidenceRatio}x`, highlight: true },
                           ].map((stat, j) => (
                             <div key={j} style={{

@@ -44,6 +44,7 @@ async function searchYouTubeWithChannelData(query, maxResults = 20) {
     type: 'video',
     order: 'viewCount',
     publishedAfter: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
+    videoDuration: 'medium', // 4–20 min — excludes Shorts
     maxResults,
     relevanceLanguage: 'en',
     key: YOUTUBE_API_KEY,
@@ -96,7 +97,8 @@ async function searchYouTubeWithChannelData(query, maxResults = 20) {
     };
   }).filter(v =>
     v.views > 1000 &&
-    v.subscribers < 500000
+    v.subscribers < 500000 &&
+    !/#shorts?\b/i.test(v.title) // exclude Shorts misclassified by the API
   ).sort((a, b) => b.ratio - a.ratio);
 }
 
