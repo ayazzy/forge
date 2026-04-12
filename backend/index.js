@@ -14,7 +14,24 @@ import { requireAuth } from './middleware/auth.js';
 dotenv.config({ path: '../.env' });
 
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://forge-gamma-pied.vercel.app',
+  /\.vercel\.app$/,
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed =>
+      typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+    )) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '50mb' }));
 
 app.use('/api/claude', requireAuth, claudeRoute);
