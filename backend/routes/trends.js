@@ -115,7 +115,7 @@ async function identifyOpportunities(videos, channelDescription) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
+      max_tokens: 3000,
       messages: [{
         role: 'user',
         content: `You are a YouTube content strategist analysing real performance data.
@@ -129,17 +129,16 @@ The views-to-subscriber ratio shows how much a video overperformed relative to t
 
 Identify 6 distinct topic opportunities based on patterns in this real data. Each opportunity should be a specific video idea this channel could make.
 
-IMPORTANT: Every field must be filled in. The "whyItWorks" field must be a non-empty string of 2 sentences that references specific numbers from the data.
+Return ONLY valid JSON. Use EXACTLY these field names:
 
-Return ONLY valid JSON matching this exact structure (all field names must match exactly):
 {
   "opportunities": [
     {
-      "topic": "Specific video topic idea based on the data",
-      "angle": "The specific hook or angle that makes this work",
-      "whyItWorks": "2 sentences explaining why the data shows this is an opportunity. Reference specific numbers like ratios and view counts.",
+      "topic": "Foods banned in other countries but legal in America",
+      "angle": "Frame it as a shocking exposé — viewers feel outrage and share with friends",
+      "why": "Videos on food safety topics from small channels consistently show 8-15x ratios in the data. The top result hit 14.7x with only 8,500 subscribers.",
       "competitionLevel": "Low",
-      "evidenceVideo": "Exact title of the best performing video from the data above",
+      "evidenceVideo": "10 Foods Banned in Europe That Are Legal in the US",
       "evidenceViews": 125000,
       "evidenceSubscribers": 8500,
       "evidenceRatio": 14.7
@@ -147,8 +146,8 @@ Return ONLY valid JSON matching this exact structure (all field names must match
   ]
 }
 
-competitionLevel must be exactly one of: "Low", "Medium", "High"
-whyItWorks must never be empty or null — always write 2 full sentences referencing the actual data.`,
+The field is named "why" — two sentences that cite actual numbers from the data above.
+competitionLevel must be exactly: "Low", "Medium", or "High"`,
       }],
     }),
   });
@@ -157,7 +156,12 @@ whyItWorks must never be empty or null — always write 2 full sentences referen
   const raw = data.content[0].text.trim();
   const { opportunities } = JSON.parse(raw.replace(/```json|```/g, '').trim());
   console.log('Opportunities from Claude:', JSON.stringify(opportunities, null, 2));
-  return opportunities;
+
+  // Normalize field name — Claude may return "why", "why_it_works", "whyItWorks", etc.
+  return opportunities.map(opp => ({
+    ...opp,
+    whyItWorks: opp.whyItWorks || opp.why || opp.why_it_works || opp.reasoning || opp.reason || '',
+  }));
 }
 
 // GET cached topics
