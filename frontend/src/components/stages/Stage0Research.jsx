@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { claude } from "../../lib/api";
 import { S, COLORS } from "../../styles/theme";
 
 function Stage0({ onApprove, saved, data, isComplete, onBackToSummary }) {
   const [topic, setTopic] = useState(saved?.topic || "");
   const [context, setContext] = useState(saved?.context || "");
+
+  useEffect(() => {
+    if (data?.topicPrefill && !saved?.topic) {
+      setTopic(data.topicPrefill);
+    }
+  }, [data?.topicPrefill]);
   const [research, setResearch] = useState(saved?.research || null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);

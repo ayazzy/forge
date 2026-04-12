@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useChannelProfile } from "../hooks/useChannelProfile";
 import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets } from "../lib/api";
@@ -29,6 +30,7 @@ const STAGES = [
 export default function Pipeline() {
   const { user } = useAuth();
   const { channelProfile } = useChannelProfile();
+  const [searchParams] = useSearchParams();
   const [activeStage, setActiveStage] = useState(0);
   const [completedStages, setCompletedStages] = useState(new Set());
   const [stageData, setStageData] = useState({});
@@ -47,6 +49,13 @@ export default function Pipeline() {
     persistedAssets,
     channelProfile,
   };
+
+  useEffect(() => {
+    const topicFromUrl = searchParams.get('topic');
+    if (topicFromUrl) {
+      setStageData(prev => ({ ...prev, 0: { ...prev[0], topicPrefill: topicFromUrl } }));
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;

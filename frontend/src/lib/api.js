@@ -162,6 +162,28 @@ export async function updateEpisode(id, data) {
   return res.json();
 }
 
+export async function generateTrendingTopics(niche, channelDescription) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/trends/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ niche, channelDescription }),
+  });
+  if (!res.ok) throw new Error('Failed to generate topics');
+  return res.json();
+}
+
+export async function validateTopic(topic, channelDescription) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/trends/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ topic, channelDescription }),
+  });
+  if (!res.ok) throw new Error('Failed to validate topic');
+  return res.json();
+}
+
 export async function deleteEpisode(id) {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/episodes/${id}`, {
