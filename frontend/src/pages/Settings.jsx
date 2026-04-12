@@ -40,7 +40,7 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "32px 40px", maxWidth: "640px", width: "100%" }}>
+      <div style={{ padding: "32px 40px", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "28px" }}>Settings</div>
 
         {/* Channel */}

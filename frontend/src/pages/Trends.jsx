@@ -10,7 +10,7 @@ export default function Trends() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "32px 40px", maxWidth: "960px", width: "100%" }}>
+      <div style={{ padding: "32px 40px", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "24px" }}>Trend Research</div>
 
         {/* Search */}

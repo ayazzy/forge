@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import AppLayout from "../components/ui/AppLayout";
 
 const ACCENT = "#e03535";
 
@@ -44,21 +45,12 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <div style={{ minHeight: "100vh", background: "#111", fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif" }}>
-      {/* Header */}
-      <div style={{ borderBottom: "1px solid #222", padding: "0 32px", display: "flex", alignItems: "center", height: "56px" }}>
-        <Link to="/" style={{ fontSize: "13px", fontWeight: "800", letterSpacing: "1.5px", textTransform: "uppercase", textDecoration: "none", color: ACCENT }}>Forge</Link>
-        <div style={{ flex: 1 }} />
-        <Link to="/" style={{ fontSize: "12px", color: "#555", textDecoration: "none" }}>← Back</Link>
-      </div>
+    <AppLayout>
+      <div style={{ padding: "32px 40px", width: "100%" }}>
+        <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Pricing</div>
+        <div style={{ fontSize: "13px", color: "#555", marginBottom: "32px" }}>Start free. Scale when you're ready.</div>
 
-      <div style={{ padding: "60px 32px", maxWidth: "960px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <div style={{ fontSize: "32px", fontWeight: "700", color: "#fff", marginBottom: "12px" }}>Pricing</div>
-          <div style={{ fontSize: "15px", color: "#555" }}>Start free. Scale when you're ready.</div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", maxWidth: "800px" }}>
           {plans.map((p) => (
             <div key={p.name} style={{ border: `1px solid ${p.highlight ? ACCENT : "#222"}`, borderRadius: "10px", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "20px", background: "#1a1a1a" }}>
               <div>
@@ -77,6 +69,6 @@ export default function Pricing() {
           ))}
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
