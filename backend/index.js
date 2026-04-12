@@ -17,6 +17,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'https://forge-gamma-pied.vercel.app',
+  'https://tryforge.studio',
+  'https://www.tryforge.studio',
   /\.vercel\.app$/,
 ];
 
