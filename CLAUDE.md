@@ -72,14 +72,24 @@ Episode packs available as one-time purchases (1, 3, 5 episodes).
 - **Gate page** in TryPipeline shows real generated titles, voice cast, image prompts in tabs
 - Gate content cached to localStorage to survive page refresh
 - **ProtectedRoute** rewritten to fix race condition (was using stale cache, letting users through without valid plan)
-- Sidebar rewritten to show real plan status and lock nav for users without a plan
+- **Sidebar** rewritten to fetch real billing, show plan name, lock nav with icons for users without a plan
+- **Settings route** now requires `requiresPlan` — all app pages gated behind active plan
+- **Landing page** updated with One Shot Mode: hero callout badge, dedicated comparison section, features card, pricing badges
 - Pricing page layout centered (maxWidth + margin auto)
 - Signup/Login handle `?redirect=` param, animated progress bar on signup success
 - Stage1Script: copy button moved to action bar, retention rewrite box fixed for dark theme
 
+## Stripe Production Status
+- Checkout session creates successfully and redirects to Stripe ✓
+- `APP_URL` in Railway must be `https://www.tryforge.studio` (with www, with https, no trailing slash, no spaces)
+- Railway builder switched from Railpack → Nixpacks (Railpack was failing with `secret APP_URL: not found`)
+- Card declines (`generic_decline`) are a Stripe account restriction on new Canadian accounts — not a code issue
+- **Contact Stripe support** to lift the restriction before testing live charges
+- Stripe business name updated to "Forge" in Stripe Dashboard settings
+
 ## Pending / Next Up
+- **Test Stripe end-to-end** once Stripe lifts the card decline restriction (contact Stripe support)
 - **Switch ElevenLabs → Cartesia TTS** (planned, not started)
-- Test full Stripe checkout end-to-end with real card
 - One-shot mode needs real API wiring for Onboarding auto-population from existing channels
 - A/B title tracking (stage 7 already generates 3 titles)
 - Stage versioning (last 3 outputs per stage)
