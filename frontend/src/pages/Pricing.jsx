@@ -23,6 +23,7 @@ const plans = [
     period: "/mo",
     episodes: 11,
     features: ["11 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support"],
+    oneShot: true,
     cta: "Start free trial",
     highlight: true,
   },
@@ -33,6 +34,7 @@ const plans = [
     period: "/mo",
     episodes: 30,
     features: ["30 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support", "Multiple channels (coming soon)"],
+    oneShot: true,
     cta: "Start free trial",
   },
 ];
@@ -77,7 +79,7 @@ export default function Pricing() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "32px 40px", width: "100%" }}>
+      <div style={{ padding: "32px 40px", maxWidth: "960px", margin: "0 auto", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Pricing</div>
         <div style={{ fontSize: "13px", color: "#555", marginBottom: "32px" }}>7-day free trial on all plans. No credit card required to start.</div>
 
@@ -106,6 +108,15 @@ export default function Pricing() {
                   <span style={{ fontSize: "13px", color: "#555" }}>{p.period}</span>
                 </div>
               </div>
+              {p.oneShot && (
+                <div style={{ background: "rgba(224,53,53,0.07)", border: "1px solid rgba(224,53,53,0.2)", borderRadius: "8px", padding: "10px 12px", display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <span style={{ fontSize: "14px", lineHeight: 1, marginTop: "1px" }}>⚡</span>
+                  <div>
+                    <div style={{ fontSize: "12px", fontWeight: "700", color: ACCENT, marginBottom: "2px" }}>One Shot Mode</div>
+                    <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.4" }}>Enter a topic — Forge generates research, script, titles, voice cast, and image prompts in one go.</div>
+                  </div>
+                </div>
+              )}
               <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
                 {p.features.map((f, i) => (
                   <li key={i} style={{ fontSize: "13px", color: i === 0 ? "#fff" : "#888", fontWeight: i === 0 ? "600" : "400" }}>{f}</li>

@@ -71,7 +71,14 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // Deduct from monthly allowance first, then purchased credits
+  const { data, error } = await supabase
+    .from('episodes')
+    .insert({ ...req.body, user_id: req.user.id })
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Deduct only after successful creation — monthly first, then purchased credits
   if (monthlyRemaining > 0) {
     await supabase.from('profiles')
       .update({ monthly_episodes_used: monthlyUsed + 1 })
@@ -87,12 +94,6 @@ router.post('/', async (req, res) => {
       .eq('user_id', req.user.id);
   }
 
-  const { data, error } = await supabase
-    .from('episodes')
-    .insert({ ...req.body, user_id: req.user.id })
-    .select()
-    .single();
-  if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 

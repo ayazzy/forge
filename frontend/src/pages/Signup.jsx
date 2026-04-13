@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const ACCENT = "#e03535";
@@ -48,6 +48,8 @@ const labelStyle = {
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/pipeline";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -72,7 +74,7 @@ export default function Signup() {
       setError(signUpError.message);
     } else {
       setSuccess(true);
-      setTimeout(() => navigate("/login"), 3000);
+      setTimeout(() => navigate(redirectTo), 3100);
     }
   };
 
@@ -85,8 +87,17 @@ export default function Signup() {
         {success ? (
           <div style={{ textAlign: "center", padding: "16px 0" }}>
             <div style={{ fontSize: "14px", color: "#4ade80", marginBottom: "8px" }}>✓ Account created</div>
-            <div style={{ fontSize: "13px", color: "#888" }}>Check your email to confirm your account.</div>
-            <div style={{ fontSize: "12px", color: "#444", marginTop: "8px" }}>Redirecting to login...</div>
+            <div style={{ fontSize: "13px", color: "#888", marginBottom: "16px" }}>Check your email to confirm your account.</div>
+            <div style={{ fontSize: "12px", color: "#555", marginBottom: "10px" }}>
+              {redirectTo === "/pricing" ? "Taking you to pick your plan…" : "Taking you in…"}
+            </div>
+            <div style={{ height: "3px", background: "#222", borderRadius: "2px", overflow: "hidden" }}>
+              <div style={{
+                height: "100%", background: ACCENT, borderRadius: "2px",
+                animation: "fillBar 3s linear forwards",
+              }} />
+            </div>
+            <style>{`@keyframes fillBar { from { width: 0% } to { width: 100% } }`}</style>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>

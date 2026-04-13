@@ -12,6 +12,7 @@ import channelRoute from './routes/channel.js';
 import trendsRoute from './routes/trends.js';
 import savedTopicsRoute from './routes/savedTopics.js';
 import claudeGuestRoute from './routes/claudeGuest.js';
+import claudeStreamRoute from './routes/claudeStream.js';
 import stripeRoute, { handleWebhook } from './routes/stripe.js';
 import { requireAuth } from './middleware/auth.js';
 
@@ -44,6 +45,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handl
 app.use(express.json({ limit: '50mb' }));
 
 app.use('/api/claude/guest', claudeGuestRoute);
+app.use('/api/claude/stream', requireAuth, claudeStreamRoute);
 app.use('/api/claude', requireAuth, claudeRoute);
 app.use('/api/elevenlabs', requireAuth, elevenlabsRoute);
 app.use('/api/ideogram', requireAuth, ideogramRoute);

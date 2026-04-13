@@ -10,6 +10,50 @@ async function getAuthHeader() {
   return session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
 }
 
+export async function claudeStream(prompt, onChunk, maxTokens = 4000) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers = { 'Content-Type': 'application/json' };
+  if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+
+  const endpoint = session?.access_token ? '/api/claude/stream' : '/api/claude/guest';
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ prompt, maxTokens }),
+  });
+
+  // Guest endpoint returns plain JSON — fall back gracefully
+  if (!session?.access_token) {
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    onChunk(data.text);
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') return;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.text) onChunk(parsed.text);
+          if (parsed.error) throw new Error(parsed.error);
+        } catch {}
+      }
+    }
+  }
+}
+
 export async function claude(prompt, maxTokens = 1000) {
   const { data: { session } } = await supabase.auth.getSession();
   const endpoint = session?.access_token ? '/api/claude' : '/api/claude/guest';

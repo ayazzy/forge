@@ -19,11 +19,11 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/pricing" element={<Pricing />} />
-      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/trends" element={<ProtectedRoute><Trends /></ProtectedRoute>} />
+      <Route path="/onboarding" element={<ProtectedRoute requiresPlan><Onboarding /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute requiresPlan><Dashboard /></ProtectedRoute>} />
+      <Route path="/pipeline" element={<ProtectedRoute requiresPlan><Pipeline /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute requiresPlan><Settings /></ProtectedRoute>} />
+      <Route path="/trends" element={<ProtectedRoute requiresPlan><Trends /></ProtectedRoute>} />
     </Routes>
   );
 }

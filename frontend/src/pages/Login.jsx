@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const ACCENT = "#e03535";
@@ -48,6 +48,8 @@ const labelStyle = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,7 +64,7 @@ export default function Login() {
     if (signInError) {
       setError(signInError.message);
     } else {
-      navigate("/dashboard");
+      navigate(redirectTo);
     }
   };
 

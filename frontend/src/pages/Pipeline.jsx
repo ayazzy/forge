@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useChannelProfile } from "../hooks/useChannelProfile";
-import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets } from "../lib/api";
+import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets, getBilling, claude, claudeStream } from "../lib/api";
 import { loadGuestSession, clearGuestSession } from "./TryPipeline";
+import { invalidateBillingCache } from "../components/ui/ProtectedRoute";
+import { analyzeScript } from "../lib/analysis";
 import { S, COLORS, ACCENT } from "../styles/theme";
 import Stage0Research from "../components/stages/Stage0Research";
 import Stage1Script from "../components/stages/Stage1Script";
@@ -44,6 +46,17 @@ export default function Pipeline() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [guestSession, setGuestSession] = useState(null);
   const [episodeLimitError, setEpisodeLimitError] = useState(false);
+  const [billing, setBilling] = useState(null);
+
+  // One-shot state
+  const [showOneShot, setShowOneShot] = useState(false);
+  const [oneShotUpgradePrompt, setOneShotUpgradePrompt] = useState(false);
+  const [oneShotTopic, setOneShotTopic] = useState('');
+  const [oneShotCtx, setOneShotCtx] = useState('');
+  const [oneShotRunning, setOneShotRunning] = useState(false);
+  const [oneShotSteps, setOneShotSteps] = useState({});
+  const [oneShotScript, setOneShotScript] = useState('');
+  const [oneShotDone, setOneShotDone] = useState(false);
 
   const isComplete = completedStages.size >= 8;
 
@@ -171,6 +184,127 @@ export default function Pipeline() {
     await loadEpisodes();
   };
 
+  const ONESHOT_STEPS = {
+    research: 'Researching your topic',
+    script: 'Writing your script',
+    hook: 'Scoring the hook',
+    titles: 'Generating titles',
+    voices: 'Building voice cast',
+    images: 'Creating image prompts',
+  };
+
+  const setOsStep = (key, status) => setOneShotSteps(prev => ({ ...prev, [key]: status }));
+
+  const handleOneShotOpen = async () => {
+    let b = billing;
+    if (!b) {
+      try { b = await getBilling(); setBilling(b); } catch {}
+    }
+    const plan = b?.plan || 'free';
+    if (plan === 'studio' || plan === 'pro') {
+      setShowOneShot(true);
+      setOneShotDone(false);
+      setOneShotTopic('');
+      setOneShotCtx('');
+      setOneShotSteps({});
+      setOneShotScript('');
+    } else {
+      setOneShotUpgradePrompt(true);
+    }
+  };
+
+  const runOneShot = async () => {
+    if (!oneShotTopic.trim() || oneShotRunning) return;
+    setOneShotRunning(true);
+    setOneShotScript('');
+    setOneShotSteps({});
+
+    const profile = channelProfile;
+    try {
+      // Research
+      setOsStep('research', 'loading');
+      const researchRaw = await claude(`You are a researcher for ${profile?.channel_name || 'a YouTube channel'} focused on: ${profile?.description || ''}.
+Research this topic thoroughly and return a structured brief.
+Topic: ${oneShotTopic}
+${oneShotCtx ? `Additional context: ${oneShotCtx}` : ''}
+Return ONLY valid JSON:
+{"coreConcept":"string","context":"string","mainSubject":{"name":"string","role":"string","angle":"string"},"keyFacts":[{"fact":"string","why":"string"}],"authenticDetails":["string"],"avoidCliches":["string"]}`, 2000);
+      let research = null;
+      try { research = JSON.parse(researchRaw.replace(/```json|```/g, '').trim()); } catch {}
+      setOsStep('research', 'done');
+
+      const researchText = research ? `TOPIC: ${oneShotTopic}\nCORE CONCEPT: ${research.coreConcept || ''}\nCONTEXT: ${research.context || ''}\nKEY FACTS:\n${(research.keyFacts || []).map(f => `• ${f.fact} — ${f.why}`).join('\n')}` : '';
+
+      // Script
+      setOsStep('script', 'loading');
+      const targetWords = profile?.prompt_config?.targetWordCount || 2000;
+      const scriptInstruction = profile?.prompt_config?.scriptPrompt || 'Write an engaging narration script.';
+      const scriptPrompt = `You are the writer for ${profile?.channel_name || 'a YouTube channel'}.
+${scriptInstruction}
+Write a full narration script of approximately ${targetWords} words.
+Topic: ${oneShotTopic}
+${oneShotCtx ? `Additional context: ${oneShotCtx}` : ''}
+${researchText ? `Research brief:\n${researchText}` : ''}
+CRITICAL — Opening hook: Start mid-action, use concrete details, establish stakes immediately.
+Return ONLY the script. No headers, no stage directions, pure narration prose.`;
+
+      let fullScript = '';
+      await claudeStream(scriptPrompt, (chunk) => {
+        fullScript += chunk;
+        setOneShotScript(fullScript);
+      }, 4000);
+      setOsStep('script', 'done');
+
+      const analysis = analyzeScript(fullScript);
+
+      // Parallel: hook + titles + voices + images
+      setOsStep('hook', 'loading');
+      setOsStep('titles', 'loading');
+      setOsStep('voices', 'loading');
+      setOsStep('images', 'loading');
+
+      await Promise.all([
+        claude(`Score this hook briefly. Hook: "${(fullScript.split(/\n\n/)[0] || '').substring(0, 300)}" Return JSON: {"overall":7}`, 100)
+          .then(() => setOsStep('hook', 'done')).catch(() => setOsStep('hook', 'done')),
+        claude(`Generate 3 YouTube titles. Topic: ${oneShotTopic}. Script: "${fullScript.substring(0, 300)}". Return JSON: {"titles":[{"title":"string","angle":"string"}]}`, 400)
+          .then(() => setOsStep('titles', 'done')).catch(() => setOsStep('titles', 'done')),
+        claude(`Identify 1-3 voices in this script. Script: "${fullScript.substring(0, 1500)}". Return JSON: {"characters":[{"name":"string","role":"string","voiceStyle":"string","sampleLine":"string"}]}`, 400)
+          .then(() => setOsStep('voices', 'done')).catch(() => setOsStep('voices', 'done')),
+        claude(`Generate 4 Midjourney prompts for key scenes. Topic: ${oneShotTopic}. Script: "${fullScript.substring(0, 1500)}". Return JSON: {"prompts":[{"scene":"string","prompt":"string"}]}`, 600)
+          .then(() => setOsStep('images', 'done')).catch(() => setOsStep('images', 'done')),
+      ]);
+
+      // Load into pipeline
+      const newStageData = {
+        0: { topic: oneShotTopic, context: oneShotCtx, research, researchText },
+        1: { topic: oneShotTopic, ctx: oneShotCtx, script: fullScript, analysis },
+      };
+      setStageData(newStageData);
+      setCompletedStages(new Set([0, 1]));
+      setActiveStage(2);
+      setOneShotDone(true);
+
+      // Create episode
+      try {
+        const ep = await createEpisode({
+          active_stage: 2,
+          completed_stages: [0, 1],
+          stage_data: newStageData,
+          title: oneShotTopic,
+          status: 'draft',
+        });
+        setCurrentEpisodeId(ep.id);
+        await loadEpisodes();
+      } catch (e) {
+        if (e.message?.includes('Episode limit')) setEpisodeLimitError(true);
+      }
+    } catch (e) {
+      console.error('One-shot error:', e);
+    } finally {
+      setOneShotRunning(false);
+    }
+  };
+
   return (
     <AppLayout>
       {showLibrary && (
@@ -201,6 +335,12 @@ export default function Pipeline() {
           style={{ background: 'none', border: '1px solid #333', color: '#888', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           Library
+        </button>
+        <button
+          onClick={handleOneShotOpen}
+          style={{ background: 'none', border: '1px solid #333', color: '#888', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          ⚡ One Shot
         </button>
         {!showResetConfirm && (
           <button
@@ -239,6 +379,134 @@ export default function Pipeline() {
             Buy episodes →
           </Link>
           <button onClick={() => setEpisodeLimitError(false)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '16px', padding: '0', fontFamily: 'inherit' }}>×</button>
+        </div>
+      )}
+
+      {/* One-shot upgrade prompt */}
+      {oneShotUpgradePrompt && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
+          <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '32px', maxWidth: '420px', width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', marginBottom: '12px' }}>⚡</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>One Shot Mode is Studio+</div>
+            <div style={{ fontSize: '13px', color: '#555', lineHeight: '1.6', marginBottom: '24px' }}>
+              Enter a topic and Forge generates your research, script, titles, voice cast, and image prompts in one go. Available on Studio and Pro plans.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <Link to="/pricing" style={{ background: ACCENT, color: '#fff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', textDecoration: 'none' }}>
+                Upgrade to Studio →
+              </Link>
+              <button onClick={() => setOneShotUpgradePrompt(false)} style={{ background: 'none', border: '1px solid #333', color: '#555', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* One-shot modal */}
+      {showOneShot && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 32px', overflowY: 'auto' }}>
+          <div style={{ background: '#111', border: '1px solid #222', borderRadius: '14px', width: '100%', maxWidth: '860px' }}>
+            {/* Modal header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #1e1e1e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ⚡ One Shot Mode
+                </div>
+                <div style={{ fontSize: '12px', color: '#555', marginTop: '2px' }}>Enter a topic — Forge generates everything automatically</div>
+              </div>
+              <button
+                onClick={() => {
+                  if (oneShotRunning) return;
+                  setShowOneShot(false);
+                  setOneShotDone(false);
+                  setOneShotSteps({});
+                  setOneShotScript('');
+                }}
+                style={{ background: 'none', border: 'none', color: oneShotRunning ? '#333' : '#555', cursor: oneShotRunning ? 'not-allowed' : 'pointer', fontSize: '18px', padding: '4px', fontFamily: 'inherit' }}
+                title={oneShotRunning ? 'Generation in progress…' : 'Close'}
+              >×</button>
+            </div>
+
+            <div style={{ padding: '24px' }}>
+              {!oneShotRunning && !oneShotDone ? (
+                /* Input form */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>Topic</label>
+                    <input
+                      autoFocus
+                      style={{ width: '100%', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px 14px', fontSize: '14px', color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      placeholder="e.g. The fall of Constantinople, 1453"
+                      value={oneShotTopic}
+                      onChange={e => setOneShotTopic(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && runOneShot()}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                      Additional Context <span style={{ textTransform: 'none', fontWeight: '400', color: '#333' }}>(optional)</span>
+                    </label>
+                    <input
+                      style={{ width: '100%', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px 14px', fontSize: '14px', color: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      placeholder="e.g. Focus on the last Byzantine emperor, avoid battle recaps"
+                      value={oneShotCtx}
+                      onChange={e => setOneShotCtx(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    onClick={runOneShot}
+                    disabled={!oneShotTopic.trim()}
+                    style={{ background: oneShotTopic.trim() ? ACCENT : '#222', color: oneShotTopic.trim() ? '#fff' : '#444', border: 'none', borderRadius: '8px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: oneShotTopic.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+                  >
+                    Generate everything →
+                  </button>
+                </div>
+              ) : oneShotDone ? (
+                /* Done state */
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ fontSize: '24px', color: '#4ade80', marginBottom: '12px' }}>✓</div>
+                  <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>Research &amp; script loaded</div>
+                  <div style={{ fontSize: '13px', color: '#555', marginBottom: '24px' }}>"{oneShotTopic}" is ready. You're now on Stage 3 — Narration.</div>
+                  <button onClick={() => setShowOneShot(false)} style={{ background: ACCENT, color: '#fff', border: 'none', borderRadius: '8px', padding: '11px 24px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Continue in pipeline →
+                  </button>
+                </div>
+              ) : (
+                /* Running state */
+                <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px' }}>
+                  {/* Steps */}
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{oneShotTopic}</div>
+                    <div style={{ fontSize: '11px', color: '#444', marginBottom: '16px' }}>Building your package…</div>
+                    {Object.entries(ONESHOT_STEPS).map(([key, label]) => {
+                      const status = oneShotSteps[key];
+                      return (
+                        <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: '1px solid #1a1a1a' }}>
+                          <div style={{ width: '16px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+                            {status === 'done' && <span style={{ color: '#4ade80', fontSize: '11px', fontWeight: '700' }}>✓</span>}
+                            {status === 'loading' && <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #333', borderTopColor: '#888', animation: 'spin 0.7s linear infinite' }} />}
+                            {!status && <span style={{ color: '#2a2a2a', fontSize: '11px' }}>○</span>}
+                          </div>
+                          <span style={{ fontSize: '12px', color: status === 'done' ? '#888' : status === 'loading' ? '#fff' : '#333', fontWeight: status === 'loading' ? '600' : '400' }}>
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Live script */}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#333', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Script</div>
+                    <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.9', whiteSpace: 'pre-wrap', maxHeight: '340px', overflowY: 'auto', fontStyle: oneShotScript ? 'normal' : 'italic' }}>
+                      {oneShotScript || (oneShotSteps.research === 'done' ? 'Writing script…' : 'Researching…')}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
 
@@ -310,7 +578,7 @@ export default function Pipeline() {
         ) : (
           <>
             {activeStage === 0 && <Stage0Research onApprove={d => handleApprove(0, d)} saved={stageData[0]} data={mergedData} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 1 && <Stage1Script onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={stageData[0]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 1 && <Stage1Script onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
             {activeStage === 2 && <Stage2Voiceover data={mergedData} onApprove={d => handleApprove(2, d)} saved={stageData[2]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
             {activeStage === 3 && <Stage3Sound data={mergedData} onApprove={d => handleApprove(3, d)} saved={stageData[3]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
             {activeStage === 4 && <Stage4Images data={mergedData} onApprove={d => handleApprove(4, d)} saved={stageData[4]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}

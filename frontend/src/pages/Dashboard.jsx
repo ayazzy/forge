@@ -39,7 +39,7 @@ export default function Dashboard() {
   const [showSuccessBanner, setShowSuccessBanner] = useState(subscriptionSuccess);
 
   useEffect(() => {
-    if (!profileLoading && !hasProfile) navigate('/onboarding');
+    if (!profileLoading && !hasProfile) navigate('/onboarding', { replace: true });
   }, [profileLoading, hasProfile]);
 
   useEffect(() => {

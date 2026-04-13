@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { claude } from "../../lib/api";
+import { claude, claudeStream } from "../../lib/api";
 import { analyzeScript, formatTime, MOOD_COLORS } from "../../lib/analysis";
 import { S, COLORS, ACCENT } from "../../styles/theme";
 
@@ -37,6 +37,39 @@ Return ONLY the revised script, no explanation.`, 4000);
     setRevisionFeedback("");
     setShowRevision(false);
     setRevising(false);
+  };
+
+  const scoreHookAuto = async (text) => {
+    setScoringHook(true);
+    const firstPara = text.trim().split(/\n\n/)[0] || "";
+    const raw = await claude(`You are a YouTube retention expert. Score this opening hook for a narrative history video.
+Hook:
+"${firstPara}"
+Score it on these dimensions, each 1-10:
+- Intrigue: does it make you need to know what happens?
+- Specificity: concrete details vs vague generalities?
+- Stakes: do we feel something matters?
+- Voice: is the register distinctive and confident?
+- Pacing: does the rhythm pull you forward?
+Return ONLY valid JSON:
+{"overall":7,"dimensions":{"intrigue":{"score":8,"note":"one sentence feedback"},"specificity":{"score":7,"note":"..."},"stakes":{"score":6,"note":"..."},"voice":{"score":8,"note":"..."},"pacing":{"score":7,"note":"..."}},"rewrite":"An improved version of the hook in the same voice","whyBetter":"One sentence explaining what the rewrite fixes"}`, 1000);
+    try { setHookScore(JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g, "").trim())); }
+    catch { setHookScore({ error: "Could not parse." }); }
+    setScoringHook(false);
+  };
+
+  const analyzeRetentionAuto = async (text) => {
+    setAnalyzingRetention(true);
+    const raw = await claude(`You are a YouTube retention expert analyzing a narrative history script.
+Identify the 3 moments most likely to cause viewers to drop off, and provide a specific line rewrite for each.
+Script:
+${text.substring(0, 3000)}
+Return ONLY valid JSON:
+{"risks":[{"timestamp":"approx minute mark e.g. 3:00","risk":"why viewers drop here","originalLine":"the exact line or passage causing the problem","rewrite":"improved version","fix":"one sentence on what changed"}]}
+Identify exactly 3 risks. Be specific about which lines are the problem.`, 1500);
+    try { setRetention(JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g, "").trim())); }
+    catch { setRetention({ error: "Could not parse." }); }
+    setAnalyzingRetention(false);
   };
 
   const scoreHook = async () => {
@@ -85,10 +118,14 @@ Identify exactly 3 risks. Be specific about which lines are the problem.`, 1500)
     setLoading(true);
     setScript("");
     setAnalysis(null);
+    setHookScore(null);
+    setRetention(null);
+
     const scriptInstruction = researchData?.channelProfile?.prompt_config?.scriptPrompt ||
       "Write an engaging script appropriate for the topic and channel style.";
     const targetWords = researchData?.channelProfile?.prompt_config?.targetWordCount || 2000;
-    const text = await claude(`You are the writer for ${researchData?.channelProfile?.channel_name || "a YouTube channel"}.
+
+    const prompt = `You are the writer for ${researchData?.channelProfile?.channel_name || "a YouTube channel"}.
 
 ${scriptInstruction}
 
@@ -98,9 +135,32 @@ ${episode ? `Episode: ${episode}` : ""}
 ${ctx ? `Additional context: ${ctx}` : ""}
 ${researchData ? `Research brief:\n${researchData.researchText}` : ""}
 
-Return ONLY the script. No headers, no stage directions, pure narration prose.`, 4000);
-    setScript(text);
+CRITICAL — Opening hook requirements (your hook must nail all of these):
+- Intrigue: Start mid-action or with a statement that demands the viewer continue
+- Specificity: Use concrete names, dates, numbers — no vague generalities
+- Stakes: Establish immediately that something important hangs in the balance
+- Voice: Be distinctive and confident, not generic
+- Pacing: Short punchy sentences that pull the reader forward
+
+Return ONLY the script. No headers, no stage directions, pure narration prose.`;
+
+    let fullText = '';
+    try {
+      await claudeStream(prompt, (chunk) => {
+        fullText += chunk;
+        setScript(fullText);
+      }, 4000);
+    } catch (e) {
+      console.error('Stream error:', e);
+    }
+
     setLoading(false);
+
+    // Auto-trigger hook score and retention in background
+    if (fullText.trim()) {
+      scoreHookAuto(fullText);
+      analyzeRetentionAuto(fullText);
+    }
   };
 
   const targetVideoLength = researchData?.channelProfile?.video_length || 15;
@@ -129,58 +189,71 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`,
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        {/* Left: inputs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={S.card}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div>
-                <label style={S.label}>Episode #</label>
-                <input style={S.input} value={episode} onChange={e => setEpisode(e.target.value)} placeholder="e.g. 02" />
-              </div>
-              <div>
-                <label style={S.label}>Topic</label>
-                <textarea style={S.textarea(120)} value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g. The last merchant on the Silk Road" />
-              </div>
-              <div>
-                <label style={S.label}>
-                  Additional Context <span style={{ color: COLORS.textTertiary, fontWeight: "400", textTransform: "none" }}>(optional)</span>
-                </label>
-                <textarea style={S.textarea(80)} value={ctx} onChange={e => setCtx(e.target.value)} placeholder="Historical detail, tone notes, specific events…" />
-              </div>
-              <button style={S.btnPrimary(loading || !topic.trim())} onClick={generate} disabled={loading || !topic.trim()}>
-                {loading ? "Writing…" : script ? "Regenerate Script" : "Generate Script"}
-              </button>
-            </div>
-          </div>
+      {/* Top control bar */}
+      <div style={{ ...S.card, marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr auto", gap: "16px", alignItems: "start" }}>
 
-          {analysis && (
-            <div style={S.card}>
-              <div style={{ display: "flex", gap: "0", marginBottom: "0" }}>
-                {[
-                  { label: "Words", value: analysis.wordCount.toLocaleString() },
-                  { label: "Read Time", value: `${analysis.minutes}m ${analysis.seconds}s` },
-                  { label: "Paragraphs", value: analysis.paragraphCount },
-                ].map((s, i, arr) => (
-                  <div key={s.label} style={{ flex: 1, textAlign: "center", padding: "12px 0", borderRight: i < arr.length - 1 ? `1px solid ${COLORS.borderLight}` : "none" }}>
-                    <div style={{ fontSize: "18px", fontWeight: "700", color: COLORS.text }}>{s.value}</div>
-                    <div style={{ fontSize: "11px", color: COLORS.textSecondary, marginTop: "2px" }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${COLORS.borderLight}`, fontSize: "12px", color: withinTarget ? COLORS.success : COLORS.error, fontWeight: "500" }}>
-                {withinTarget
-                  ? `✓ Within ${targetMin}–${targetMax} min target`
-                  : analysis.minutes < targetMin
-                  ? `${targetMin - analysis.minutes}m short of target`
-                  : `${analysis.minutes - targetMax}m over target`}
-              </div>
+          {/* Research brief or topic input */}
+          {researchData?.research ? (
+            <div style={{ background: COLORS.surfaceSecondary, borderRadius: "8px", padding: "12px 14px", height: "100%", boxSizing: "border-box" }}>
+              <div style={{ fontSize: "11px", color: COLORS.textTertiary, fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>Research Brief</div>
+              <div style={{ fontSize: "13px", color: COLORS.text, fontWeight: "600", marginBottom: "4px" }}>{researchData.topic}</div>
+              {researchData.research?.coreConcept && (
+                <div style={{ fontSize: "12px", color: COLORS.textSecondary, lineHeight: "1.5" }}>{researchData.research.coreConcept}</div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label style={S.label}>Topic</label>
+              <textarea style={S.textarea(80)} value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g. The last merchant on the Silk Road" />
             </div>
           )}
+
+          {/* Additional context */}
+          <div>
+            <label style={S.label}>Additional Context <span style={{ color: COLORS.textTertiary, fontWeight: "400", textTransform: "none" }}>(optional)</span></label>
+            <textarea style={S.textarea(80)} value={ctx} onChange={e => setCtx(e.target.value)} placeholder="Tone notes, specific events, angles…" />
+          </div>
+
+          {/* Episode + buttons */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "160px" }}>
+            <div>
+              <label style={S.label}>Episode #</label>
+              <input style={S.input} value={episode} onChange={e => setEpisode(e.target.value)} placeholder="e.g. 02" />
+            </div>
+            <button style={S.btnPrimary(loading || !topic.trim())} onClick={generate} disabled={loading || !topic.trim()}>
+              {loading ? "Writing…" : script ? "Regenerate" : "Generate Script"}
+            </button>
+            {script && (
+              <button style={{ ...S.btnApprove, justifyContent: "center" }} onClick={() => onApprove({ script, analysis, episode, topic, ctx })}>
+                Approve &amp; Continue →
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Right: script editor */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+        {/* Stats bar */}
+        {analysis && (
+          <div style={{ display: "flex", gap: "24px", marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${COLORS.borderLight}`, alignItems: "center" }}>
+            {[
+              { label: "Words", value: analysis.wordCount.toLocaleString() },
+              { label: "Read Time", value: `${analysis.minutes}m ${analysis.seconds}s` },
+              { label: "Paragraphs", value: analysis.paragraphCount },
+            ].map(s => (
+              <div key={s.label} style={{ display: "flex", gap: "6px", alignItems: "baseline" }}>
+                <span style={{ fontSize: "16px", fontWeight: "700", color: COLORS.text }}>{s.value}</span>
+                <span style={{ fontSize: "11px", color: COLORS.textSecondary }}>{s.label}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: "12px", color: withinTarget ? COLORS.success : COLORS.error, fontWeight: "500" }}>
+              {withinTarget ? `✓ Within ${targetMin}–${targetMax} min target` : analysis.minutes < targetMin ? `${targetMin - analysis.minutes}m short of target` : `${analysis.minutes - targetMax}m over target`}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Full-width script area */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
           {script ? (
             <>
               {/* Pill tabs */}
@@ -207,12 +280,6 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`,
                     {t.label}
                   </button>
                 ))}
-                <button
-                  style={{ ...S.btnSecondary(copied), flexShrink: 0, fontSize: "11px", padding: "7px 12px" }}
-                  onClick={() => { navigator.clipboard.writeText(script); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-                >
-                  {copied ? "Copied!" : "Copy"}
-                </button>
               </div>
 
               {tab === "script" && (
@@ -250,12 +317,15 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`,
 
               {tab === "hook" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "480px", overflowY: "auto" }}>
-                  <div style={{ fontSize: "12px", color: COLORS.textTertiary, fontStyle: "italic" }}>
-                    Scores your opening paragraph on intrigue, specificity, stakes, voice, and pacing — then rewrites it.
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: "12px", color: COLORS.textTertiary, fontStyle: "italic" }}>
+                      Opening hook scored on intrigue, specificity, stakes, voice, and pacing.
+                    </div>
+                    <button style={{ ...S.btnSecondary(scoringHook), fontSize: "11px" }} onClick={scoreHook} disabled={scoringHook || !script}>
+                      {scoringHook ? "Scoring…" : "Re-score"}
+                    </button>
                   </div>
-                  <button style={S.btnPrimary(scoringHook || !script)} onClick={scoreHook} disabled={scoringHook || !script}>
-                    {scoringHook ? "Scoring…" : hookScore ? "Re-score Hook" : "Score My Hook"}
-                  </button>
+                  {scoringHook && <div style={{ fontSize: "12px", color: COLORS.textTertiary }}>Scoring your hook…</div>}
                   {hookScore?.error && <div style={{ color: COLORS.error, fontSize: "12px" }}>{hookScore.error}</div>}
                   {hookScore && !hookScore.error && (
                     <>
@@ -297,12 +367,15 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`,
 
               {tab === "retention" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "480px", overflowY: "auto" }}>
-                  <div style={{ fontSize: "12px", color: COLORS.textTertiary, fontStyle: "italic" }}>
-                    Identifies the 3 highest drop-off risk moments and rewrites each one to keep viewers watching.
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: "12px", color: COLORS.textTertiary, fontStyle: "italic" }}>
+                      The 3 highest drop-off risk moments with rewrites to keep viewers watching.
+                    </div>
+                    <button style={{ ...S.btnSecondary(analyzingRetention), fontSize: "11px" }} onClick={analyzeRetention} disabled={analyzingRetention || !script}>
+                      {analyzingRetention ? "Analyzing…" : "Re-analyze"}
+                    </button>
                   </div>
-                  <button style={S.btnPrimary(analyzingRetention || !script)} onClick={analyzeRetention} disabled={analyzingRetention || !script}>
-                    {analyzingRetention ? "Analyzing…" : retention ? "Re-analyze" : "Analyze Retention Risks"}
-                  </button>
+                  {analyzingRetention && <div style={{ fontSize: "12px", color: COLORS.textTertiary }}>Analyzing retention risks…</div>}
                   {retention?.error && <div style={{ color: COLORS.error, fontSize: "12px" }}>{retention.error}</div>}
                   {retention && !retention.error && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -317,7 +390,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`,
                             <div style={S.label}>Original</div>
                             <div style={{ fontSize: "12px", color: COLORS.textSecondary, fontStyle: "italic", lineHeight: "1.6" }}>"{r.originalLine}"</div>
                           </div>
-                          <div style={{ background: "#f0fdf4", padding: "10px 12px", marginBottom: "10px", borderLeft: "3px solid #86efac", borderRadius: "4px" }}>
+                          <div style={{ background: COLORS.surfaceSecondary, padding: "10px 12px", marginBottom: "10px", borderLeft: "3px solid #4ade80", borderRadius: "4px" }}>
                             <div style={S.label}>Rewrite</div>
                             <div style={{ fontSize: "12px", color: COLORS.text, lineHeight: "1.6" }}>"{r.rewrite}"</div>
                           </div>
@@ -354,25 +427,26 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`,
                     </div>
                   </div>
                 ) : (
-                  <button style={{ ...S.btnSecondary(false), width: "100%", marginBottom: "8px" }} onClick={() => setShowRevision(true)}>
-                    Give Feedback &amp; Revise
-                  </button>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                    <button style={{ ...S.btnSecondary(false), flex: 1 }} onClick={() => setShowRevision(true)}>
+                      Give Feedback &amp; Revise
+                    </button>
+                    <button
+                      style={{ ...S.btnSecondary(copied), flexShrink: 0 }}
+                      onClick={() => { navigator.clipboard.writeText(script); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    >
+                      {copied ? "Copied!" : "Copy Script"}
+                    </button>
+                  </div>
                 )}
               </div>
 
-              <button
-                style={{ ...S.btnApprove, width: "100%", justifyContent: "center", padding: "15px 24px", fontSize: "14px" }}
-                onClick={() => onApprove({ script, analysis, episode, topic, ctx })}
-              >
-                ✓ Approve Script &amp; Continue →
-              </button>
             </>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "300px", color: COLORS.textTertiary, fontSize: "13px" }}>
-              {loading ? "Writing your script…" : "Generate a script using the form on the left"}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px", color: COLORS.textTertiary, fontSize: "13px" }}>
+              Click Generate Script above to begin
             </div>
           )}
-        </div>
       </div>
     </div>
   );
