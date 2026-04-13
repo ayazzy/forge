@@ -113,7 +113,7 @@ export default function TryPipeline() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 32px' }}>
 
         {/* Setup phase */}
         {phase === 'setup' && (

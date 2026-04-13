@@ -67,52 +67,58 @@ Return ONLY valid JSON:
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        {/* Left: inputs */}
-        <div style={{ ...S.card, marginBottom: 0, display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
+      {/* Input row */}
+      <div style={{ ...S.card, marginBottom: "24px" }}>
+        <div style={{ display: "flex", gap: "16px", marginBottom: "12px" }}>
+          <div style={{ flex: 1 }}>
             <label style={S.label}>Topic</label>
             <textarea
-              style={S.textarea(120)}
+              style={S.textarea(80)}
               value={topic}
               onChange={e => setTopic(e.target.value)}
               placeholder="e.g. What topic is your next video about?"
             />
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <label style={S.label}>
               Additional Context <span style={{ color: COLORS.textTertiary, fontWeight: "400", textTransform: "none" }}>(optional)</span>
             </label>
-            <input
-              style={S.input}
+            <textarea
+              style={S.textarea(80)}
               value={context}
               onChange={e => setContext(e.target.value)}
-              placeholder="e.g. focus on Gen Z, budget-friendly angle, US market"
+              placeholder="e.g. focus on Gen Z, US market, avoid clickbait angles"
             />
           </div>
+        </div>
+        <div style={{ display: "flex", gap: "8px" }}>
           <button
-            style={S.btnPrimary(loading || !topic.trim())}
+            style={{ ...S.btnPrimary(loading || !topic.trim()), flexShrink: 0 }}
             onClick={generate}
             disabled={loading || !topic.trim()}
           >
             {loading ? "Researching…" : research ? "Re-research" : "Research This Topic"}
           </button>
           {research && !research.error && (
-            <div style={{ fontSize: "12px", color: COLORS.success, fontWeight: "500" }}>
-              ✓ Research complete — approve to carry into script
-            </div>
+            <button
+              style={{ ...S.btnApprove, flexShrink: 0 }}
+              onClick={() => onApprove({ topic, context, research, researchText: toText })}
+            >
+              Approve &amp; Write Script →
+            </button>
           )}
         </div>
+      </div>
 
-        {/* Right: results */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* Results */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {!research && !loading && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "300px", color: COLORS.textTertiary, fontSize: "13px" }}>
-              Enter a topic to begin research
+            <div style={{ color: COLORS.textTertiary, fontSize: "13px", padding: "24px 0" }}>
+              Enter a topic above to begin research.
             </div>
           )}
           {loading && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "300px", color: COLORS.textSecondary, fontSize: "13px" }}>
+            <div style={{ color: COLORS.textSecondary, fontSize: "13px", padding: "24px 0" }}>
               Researching…
             </div>
           )}
@@ -120,54 +126,59 @@ Return ONLY valid JSON:
             <div style={{ ...S.card, color: COLORS.error, fontSize: "13px" }}>{research.error}</div>
           )}
           {research && !research.error && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "560px", overflowY: "auto" }}>
-
-              <div style={S.card}>
-                <div style={S.label}>Core Concept</div>
-                <div style={{ fontSize: "14px", color: COLORS.text, lineHeight: "1.6" }}>{research.coreConcept}</div>
+            <>
+              {/* Row 1: Core Concept + Context (equal, paragraph content) */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.label}>Core Concept</div>
+                  <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: "1.6" }}>{research.coreConcept}</div>
+                </div>
+                <div style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.label}>Context</div>
+                  <div style={{ fontSize: "13px", color: COLORS.textSecondary, lineHeight: "1.6" }}>{research.context}</div>
+                </div>
               </div>
 
-              <div style={S.card}>
-                <div style={S.label}>Context</div>
-                <div style={{ fontSize: "13px", color: COLORS.textSecondary, lineHeight: "1.6" }}>{research.context}</div>
+              {/* Row 2: Key Facts (wide) + Main Subject (narrow) */}
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.label}>Key Facts</div>
+                  {(research.keyFacts || []).map((f, i) => (
+                    <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${COLORS.borderLight}` }}>
+                      <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: "1.4", marginBottom: "2px" }}>• {f.fact}</div>
+                      <div style={{ fontSize: "12px", color: COLORS.textTertiary, paddingLeft: "12px" }}>{f.why}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.label}>Main Subject</div>
+                  {[
+                    { label: "Subject", val: research.mainSubject?.name },
+                    { label: "Role", val: research.mainSubject?.role },
+                    { label: "Angle", val: research.mainSubject?.angle },
+                  ].map(r => (
+                    <div key={r.label} style={S.statRow}>
+                      <span style={S.statLabel}>{r.label}</span>
+                      <span style={{ fontSize: "12px", color: COLORS.textSecondary, textAlign: "right", maxWidth: "65%" }}>{r.val}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div style={S.card}>
-                <div style={S.label}>Main Subject</div>
-                {[
-                  { label: "Subject", val: research.mainSubject?.name },
-                  { label: "Role", val: research.mainSubject?.role },
-                  { label: "Angle", val: research.mainSubject?.angle },
-                ].map(r => (
-                  <div key={r.label} style={S.statRow}>
-                    <span style={S.statLabel}>{r.label}</span>
-                    <span style={{ fontSize: "12px", color: COLORS.textSecondary, textAlign: "right", maxWidth: "65%" }}>{r.val}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div style={S.card}>
-                <div style={S.label}>Key Facts</div>
-                {(research.keyFacts || []).map((f, i) => (
-                  <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${COLORS.borderLight}` }}>
-                    <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: "1.4", marginBottom: "2px" }}>• {f.fact}</div>
-                    <div style={{ fontSize: "12px", color: COLORS.textTertiary, paddingLeft: "12px" }}>{f.why}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={S.card}>
-                <div style={S.label}>Authentic Details</div>
-                {(research.authenticDetails || []).map((d, i) => (
-                  <div key={i} style={{ fontSize: "13px", color: COLORS.textSecondary, padding: "5px 0", borderBottom: `1px solid ${COLORS.borderLight}`, lineHeight: "1.5" }}>• {d}</div>
-                ))}
-              </div>
-
-              <div style={S.card}>
-                <div style={S.label}>Avoid</div>
-                {(research.avoidCliches || []).map((c, i) => (
-                  <div key={i} style={{ fontSize: "12px", color: COLORS.textTertiary, padding: "3px 0" }}>✕ {c}</div>
-                ))}
+              {/* Row 3: Authentic Details (wide) + Avoid (narrow) */}
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.label}>Authentic Details</div>
+                  {(research.authenticDetails || []).map((d, i) => (
+                    <div key={i} style={{ fontSize: "13px", color: COLORS.textSecondary, padding: "5px 0", borderBottom: `1px solid ${COLORS.borderLight}`, lineHeight: "1.5" }}>• {d}</div>
+                  ))}
+                </div>
+                <div style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.label}>Avoid</div>
+                  {(research.avoidCliches || []).map((c, i) => (
+                    <div key={i} style={{ fontSize: "12px", color: COLORS.textTertiary, padding: "5px 0", borderBottom: `1px solid ${COLORS.borderLight}` }}>✕ {c}</div>
+                  ))}
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: "8px" }}>
@@ -177,16 +188,9 @@ Return ONLY valid JSON:
                 >
                   {copied ? "Copied!" : "Copy Brief"}
                 </button>
-                <button
-                  style={{ ...S.btnApprove, flex: 1, justifyContent: "center" }}
-                  onClick={() => onApprove({ topic, context, research, researchText: toText })}
-                >
-                  Approve &amp; Write Script →
-                </button>
               </div>
-            </div>
+            </>
           )}
-        </div>
       </div>
     </div>
   );
