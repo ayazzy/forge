@@ -2,9 +2,8 @@
 
 ## High Impact — Core Product Gaps
 
-- [ ] **Existing channel onboarding** — Most signups will be active creators, not beginners. They have channel history, an established style, and existing upload data. Onboarding should let them paste their channel URL and auto-import: niche, tone, average video length, and top-performing topics. Pre-populate the channel template instead of asking them to describe their own channel from scratch.
-- [ ] **Connect your channel (YouTube OAuth)** — Let creators link their YouTube account so Forge can track how videos made in Forge perform after publishing. Views, CTR, retention curve, watch time. Closes the loop between production and results. This is the data flywheel that makes the channel template improve over time.
-- [ ] **One-shot / auto mode** — Run the full pipeline automatically with no clicks. Every stage has the logic; needs orchestration layer.
+- [ ] **Existing channel onboarding** — Most signups will be active creators, not beginners. Onboarding should let them paste their channel URL and auto-import: niche, tone, average video length, and top-performing topics. Pre-populate the channel template instead of asking them to describe their own channel from scratch.
+- [ ] **Connect your channel (YouTube OAuth)** — Let creators link their YouTube account so Forge can track how videos made in Forge perform after publishing. Views, CTR, retention curve, watch time. This is the data flywheel that makes the channel template improve over time.
 - [ ] **YouTube Analytics integration** — Connect via YouTube Data API so creators see actual performance of videos made with Forge. Close the loop.
 - [ ] **Stage versioning** — Script edits are destructive. Add simple version history per stage (last 3 outputs) to remove regeneration anxiety.
 
@@ -14,33 +13,41 @@
 
 - [ ] **Non-linear pipeline navigation** — Allow going back to revise earlier stages without losing downstream work (with a warning).
 - [ ] **Episode planning / scheduling** — Calendar view with queued topics. Find a topic in Trends, schedule it, start the pipeline.
-- [ ] **Configurable weekly goal** — Weekly target is hardcoded to 2 episodes. Make it user-settable in Settings.
 - [ ] **Hook score & retention aggregated** — Already calculating hook scores and drop-off points per script. Surface patterns across episodes: "Your hooks average 3.2/5 — specificity is your weakest dimension."
-- [ ] **Save topics for later** — Bookmark a trend topic without immediately starting a pipeline. Simple saved ideas list on Trends page.
 
 ---
 
 ## Lower Effort, High Polish
 
-- [ ] **Fix stage label mismatch** — Thumbnail and Metadata labels are swapped in the pipeline nav.
-- [ ] **Wire up usage meter in Settings** — Currently shows hardcoded 0/500. Connect to real data from `/api/usage`.
+- [ ] **Switch ElevenLabs → Cartesia TTS** — Replace ElevenLabs with Cartesia for voice generation. Backend only change.
 - [ ] **Trends auto-refresh** — Topics marked stale after 24h should trigger background regeneration, not require a manual button click.
-- [ ] **Episode search & filter** — Search box and status filter (draft/complete) in the episode library.
 - [ ] **Bulk asset export** — Download all assets for an episode as a ZIP (research brief, script, audio, images, metadata).
+- [ ] **Test Stripe end-to-end** — Full checkout flow with a real card. Currently running in live mode.
 
 ---
 
-## Bigger Bets (Post-Payments)
+## Bigger Bets
 
-- [ ] **Channel performance dashboard** — After YouTube Analytics integration, surface which niches, tones, and lengths perform best for that channel. Use it to auto-improve the channel template.
+- [ ] **Channel performance dashboard** — After YouTube Analytics integration, surface which niches, tones, and lengths perform best for that channel.
 - [ ] **A/B title tracking** — Stage 7 already generates 3 title options. Let users mark which they used and track CTR over time.
 - [ ] **Collaboration / team seats** — Already on the Studio pricing plan. Agencies and larger channels need this.
 - [ ] **Subtitle / caption generation** — Full script + audio already exists. Generate an SRT file at the end of the pipeline.
 
 ---
 
-## In Progress
+## Completed
 
-- [ ] Payments (Stripe integration)
-- [ ] Landing page polish
-- [ ] One-shot mode (fully automated pipeline run)
+- [x] **Payments (Stripe)** — Subscriptions (Creator/Studio/Pro) + episode packs. 7-day free trial. Webhooks, billing portal, plan gating.
+- [x] **One Shot Mode** — Automated pipeline run (research → script → titles/voices/images in parallel). Gated to Studio/Pro plans. Available in both guest try flow and authenticated pipeline.
+- [x] **Try-before-signup funnel** — /try guest flow with real generated output (titles, voice cast, image prompts) on gate page. Cached to localStorage.
+- [x] **Plan gating** — All app pages require an active plan. Sidebar shows lock icons + "Upgrade to unlock" for users without a plan. Sidebar shows real plan name.
+- [x] **ProtectedRoute race condition fix** — Billing always fetched fresh before rendering children. 4s retry for Stripe webhook timing.
+- [x] **Signup/Login redirect flow** — ?redirect= param support. Animated progress bar on signup.
+- [x] **Fix stage label mismatch** — Thumbnail and Metadata labels corrected in pipeline nav.
+- [x] **Wire up usage meter in Settings** — Connected to real data from /api/stripe/billing.
+- [x] **Configurable weekly goal** — User-settable in Settings.
+- [x] **Episode search & filter** — Search box and status filter in episode library.
+- [x] **Save topics for later** — Bookmark trend topics; saved ideas list on Trends page.
+- [x] **Stage1Script copy button** — Moved to action bar alongside feedback/revise.
+- [x] **Retention rewrite box dark theme fix** — Was white-on-white; fixed to dark surface.
+- [x] **Episode credit deduction order** — Deduction now happens after successful DB insert.
