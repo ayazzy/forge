@@ -15,10 +15,12 @@ router.get('/', async (req, res) => {
 
 // Save channel profile (basic fields only)
 router.post('/', async (req, res) => {
-  const { channel_name, description, tone, video_length } = req.body;
+  const { channel_name, description, tone, video_length, weekly_goal } = req.body;
+  const update = { channel_name, description, tone, video_length };
+  if (weekly_goal !== undefined) update.weekly_goal = Number(weekly_goal);
   const { data, error } = await supabase
     .from('profiles')
-    .update({ channel_name, description, tone, video_length })
+    .update(update)
     .eq('id', req.user.id)
     .select()
     .single();

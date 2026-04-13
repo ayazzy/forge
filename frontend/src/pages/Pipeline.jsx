@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useChannelProfile } from "../hooks/useChannelProfile";
 import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets } from "../lib/api";
+import { loadGuestSession, clearGuestSession } from "./TryPipeline";
 import { S, COLORS, ACCENT } from "../styles/theme";
 import Stage0Research from "../components/stages/Stage0Research";
 import Stage1Script from "../components/stages/Stage1Script";
@@ -15,6 +16,7 @@ import Stage7Metadata from "../components/stages/Stage7Metadata";
 import EpisodeLibrary from "../components/ui/EpisodeLibrary";
 import AppLayout from "../components/ui/AppLayout";
 import StageBar from "../components/ui/StageBar";
+import { Link } from "react-router-dom";
 
 const STAGES = [
   { id: 0, label: "Research" },
@@ -24,7 +26,7 @@ const STAGES = [
   { id: 4, label: "Visuals" },
   { id: 5, label: "Assembly" },
   { id: 6, label: "Thumbnail" },
-  { id: 7, label: "Publish" },
+  { id: 7, label: "Metadata" },
 ];
 
 export default function Pipeline() {
@@ -40,6 +42,8 @@ export default function Pipeline() {
   const [persistedAssets, setPersistedAssets] = useState({ audio: {}, images: {} });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [guestSession, setGuestSession] = useState(null);
+  const [episodeLimitError, setEpisodeLimitError] = useState(false);
 
   const isComplete = completedStages.size >= 8;
 
@@ -54,6 +58,11 @@ export default function Pipeline() {
     const topicFromUrl = searchParams.get('topic');
     if (topicFromUrl) {
       setStageData(prev => ({ ...prev, 0: { ...prev[0], topicPrefill: topicFromUrl } }));
+    }
+    // Check for guest session to restore
+    const guest = loadGuestSession();
+    if (guest?.stageData && Object.keys(guest.stageData).length > 0) {
+      setGuestSession(guest);
     }
   }, []);
 
@@ -118,15 +127,22 @@ export default function Pipeline() {
           episode_number: merged.episode || null,
         });
       } else {
-        const episode = await createEpisode({
-          active_stage: newActive,
-          completed_stages: [...newCompleted],
-          stage_data: newStageData,
-          title: merged.topic || null,
-          episode_number: merged.episode || null,
-          status: 'draft',
-        });
-        setCurrentEpisodeId(episode.id);
+        try {
+          const episode = await createEpisode({
+            active_stage: newActive,
+            completed_stages: [...newCompleted],
+            stage_data: newStageData,
+            title: merged.topic || null,
+            episode_number: merged.episode || null,
+            status: 'draft',
+          });
+          setCurrentEpisodeId(episode.id);
+        } catch (e) {
+          if (e.message?.includes('Episode limit')) {
+            setEpisodeLimitError(true);
+          }
+          throw e;
+        }
       }
       await loadEpisodes();
     } catch (e) {
@@ -212,6 +228,46 @@ export default function Pipeline() {
           </div>
         )}
       </div>
+
+      {/* Episode limit banner */}
+      {episodeLimitError && (
+        <div style={{ background: '#2a1515', borderBottom: '1px solid #3a1515', padding: '12px 32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '13px', color: '#e03535', flex: 1 }}>
+            You've used all your episodes for this month. Buy more or upgrade your plan to continue.
+          </span>
+          <Link to="/pricing" style={{ background: ACCENT, color: '#fff', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Buy episodes →
+          </Link>
+          <button onClick={() => setEpisodeLimitError(false)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '16px', padding: '0', fontFamily: 'inherit' }}>×</button>
+        </div>
+      )}
+
+      {/* Guest session restore banner */}
+      {guestSession && (
+        <div style={{ background: '#0a2a1a', border: '1px solid #14532d', borderBottom: '1px solid #14532d', padding: '10px 32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '12px', color: '#4ade80', flex: 1 }}>
+            You have a saved trial session: <strong>{guestSession.stageData[0]?.topic || 'untitled topic'}</strong> — Research + Script complete
+          </span>
+          <button
+            onClick={() => {
+              setStageData(guestSession.stageData);
+              setCompletedStages(new Set(Object.keys(guestSession.stageData).map(Number)));
+              setActiveStage(Object.keys(guestSession.stageData).length);
+              clearGuestSession();
+              setGuestSession(null);
+            }}
+            style={{ background: '#4ade80', color: '#000', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+          >
+            Load it →
+          </button>
+          <button
+            onClick={() => { clearGuestSession(); setGuestSession(null); }}
+            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '14px', padding: '4px', fontFamily: 'inherit' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <StageBar
         STAGES={STAGES}

@@ -11,10 +11,13 @@ async function getAuthHeader() {
 }
 
 export async function claude(prompt, maxTokens = 1000) {
-  const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/claude`, {
+  const { data: { session } } = await supabase.auth.getSession();
+  const endpoint = session?.access_token ? '/api/claude' : '/api/claude/guest';
+  const headers = { 'Content-Type': 'application/json' };
+  if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+  const res = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeader },
+    headers,
     body: JSON.stringify({ prompt, maxTokens }),
   });
   const data = await res.json();
@@ -201,6 +204,34 @@ export async function validateTopic(topic, channelDescription) {
   return res.json();
 }
 
+export async function getSavedTopics() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/saved-topics`, { headers: { ...authHeader } });
+  if (!res.ok) throw new Error('Failed to fetch saved topics');
+  return res.json();
+}
+
+export async function saveTopic(topic) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/saved-topics`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify(topic),
+  });
+  if (!res.ok) throw new Error('Failed to save topic');
+  return res.json();
+}
+
+export async function deleteSavedTopic(id) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/saved-topics/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeader },
+  });
+  if (!res.ok) throw new Error('Failed to delete saved topic');
+  return res.json();
+}
+
 export async function deleteEpisode(id) {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/episodes/${id}`, {
@@ -209,4 +240,46 @@ export async function deleteEpisode(id) {
   });
   if (!res.ok) throw new Error('Failed to delete episode');
   return res.json();
+}
+
+export async function getBilling() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/stripe/billing`, { headers: { ...authHeader } });
+  if (!res.ok) throw new Error('Failed to fetch billing');
+  return res.json();
+}
+
+export async function createCheckoutSession(plan = 'pro') {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/stripe/create-checkout-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ plan }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+export async function createPortalSession() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/stripe/create-portal-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+export async function createPackCheckoutSession(pack) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/stripe/create-pack-checkout-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ pack }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
 }

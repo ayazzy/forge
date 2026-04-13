@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import Trends from "./pages/Trends";
+import TryPipeline from "./pages/TryPipeline";
 import ProtectedRoute from "./components/ui/ProtectedRoute";
 import Onboarding from "./pages/Onboarding";
 
@@ -14,6 +15,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/try" element={<TryPipeline />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/pricing" element={<Pricing />} />

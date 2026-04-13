@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/ui/AppLayout';
 import { useChannelProfile } from '../hooks/useChannelProfile';
-import { getCachedTrends, refreshTrends, validateTopic } from '../lib/api';
+import { getCachedTrends, refreshTrends, validateTopic, getSavedTopics, saveTopic, deleteSavedTopic } from '../lib/api';
 
 const fmtViews = (v) =>
   v > 1000000 ? `${(v / 1000000).toFixed(1)}M` : v > 1000 ? `${Math.round(v / 1000)}K` : (v || 0).toString();
@@ -20,9 +20,12 @@ export default function Trends() {
   const [validating, setValidating] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
   const [error, setError] = useState(null);
+  const [savedTopics, setSavedTopics] = useState([]);
+  const [savingTopic, setSavingTopic] = useState(null);
 
   useEffect(() => {
     loadTopics();
+    getSavedTopics().then(setSavedTopics).catch(() => {});
   }, []);
 
   const loadTopics = async () => {
@@ -76,6 +79,33 @@ export default function Trends() {
   const sendToPipeline = (topic) => navigate(`/pipeline?topic=${encodeURIComponent(topic)}`);
   const channelName = channelProfile?.channel_name || 'your channel';
 
+  const isSaved = (topic) => savedTopics.some(t => t.topic === topic);
+
+  const handleToggleSave = async (result) => {
+    setSavingTopic(result.topic);
+    try {
+      const existing = savedTopics.find(t => t.topic === result.topic);
+      if (existing) {
+        await deleteSavedTopic(existing.id);
+        setSavedTopics(prev => prev.filter(t => t.id !== existing.id));
+      } else {
+        const saved = await saveTopic({
+          topic: result.topic,
+          angle: result.angle,
+          competition_level: result.competitionLevel,
+          competition_color: result.competitionColor,
+          why_it_works: result.whyItWorks,
+          evidence_ratio: result.evidenceRatio,
+        });
+        setSavedTopics(prev => [saved, ...prev]);
+      }
+    } catch (e) {
+      console.error('Failed to toggle save:', e);
+    } finally {
+      setSavingTopic(null);
+    }
+  };
+
   return (
     <AppLayout>
       <div style={{ padding: '32px 40px', width: '100%' }}>
@@ -115,6 +145,7 @@ export default function Trends() {
           {[
             { key: 'browse', label: '✦ Ideas for me' },
             { key: 'validate', label: '⟳ Validate my idea' },
+            { key: 'saved', label: `Saved${savedTopics.length > 0 ? ` (${savedTopics.length})` : ''}` },
           ].map(m => (
             <button
               key={m.key}
@@ -276,6 +307,20 @@ export default function Trends() {
                       >
                         Use in pipeline →
                       </button>
+                      <button
+                        onClick={() => handleToggleSave(result)}
+                        disabled={savingTopic === result.topic}
+                        title={isSaved(result.topic) ? 'Remove from saved' : 'Save for later'}
+                        style={{
+                          background: isSaved(result.topic) ? '#1a1a2a' : '#222',
+                          color: isSaved(result.topic) ? '#818cf8' : '#555',
+                          border: `1px solid ${isSaved(result.topic) ? '#333' : '#333'}`,
+                          padding: '10px 12px', borderRadius: '8px', fontSize: '14px',
+                          cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        {isSaved(result.topic) ? '★' : '☆'}
+                      </button>
                       <a
                         href={`https://www.youtube.com/results?search_query=${encodeURIComponent(result.topic)}`}
                         target="_blank"
@@ -294,6 +339,66 @@ export default function Trends() {
               </div>
             )}
           </>
+        )}
+
+        {/* Saved topics mode */}
+        {mode === 'saved' && (
+          <div>
+            {savedTopics.length === 0 ? (
+              <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '48px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '14px', color: '#555', marginBottom: '8px' }}>No saved topics yet</div>
+                <div style={{ fontSize: '12px', color: '#333' }}>Star a topic in the Ideas view to save it here</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {savedTopics.map((t, i) => (
+                  <div key={t.id} style={{
+                    background: '#1a1a1a', border: '1px solid #222',
+                    borderLeft: `3px solid ${t.competition_color || '#444'}`,
+                    borderRadius: '12px', padding: '20px',
+                    display: 'flex', flexDirection: 'column', gap: '12px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', lineHeight: '1.4', marginBottom: '6px' }}>{t.topic}</div>
+                        <div style={{ fontSize: '12px', color: '#555' }}>{t.angle}</div>
+                      </div>
+                      <div style={{
+                        fontSize: '10px', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', flexShrink: 0,
+                        background: `${t.competition_color || '#444'}15`, color: t.competition_color || '#888',
+                        border: `1px solid ${t.competition_color || '#444'}30`, whiteSpace: 'nowrap',
+                      }}>
+                        {t.competition_level} competition
+                      </div>
+                    </div>
+                    {t.why_it_works && (
+                      <div style={{ background: '#111', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#888', lineHeight: '1.6' }}>
+                        {t.why_it_works}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                      <button
+                        onClick={() => sendToPipeline(t.topic)}
+                        style={{ flex: 1, background: '#e03535', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        Use in pipeline →
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await deleteSavedTopic(t.id);
+                          setSavedTopics(prev => prev.filter(s => s.id !== t.id));
+                        }}
+                        style={{ background: '#222', color: '#555', border: '1px solid #333', padding: '10px 12px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit' }}
+                        title="Remove"
+                      >
+                        ★
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Validate mode */}

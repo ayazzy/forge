@@ -378,8 +378,8 @@ export default function Landing() {
           <NavLink href="#trends">Trends</NavLink>
           <NavLink href="#pricing">Pricing</NavLink>
           <Link to="/login" style={{ fontSize:'14px',color:C.textSub }}>Sign in</Link>
-          <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'600',boxShadow:'0 2px 8px rgba(224,53,53,0.2)' }}>
-            Get started →
+          <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'600',boxShadow:'0 2px 8px rgba(224,53,53,0.2)' }}>
+            Try it free →
           </Link>
         </div>
       </nav>
@@ -409,8 +409,8 @@ export default function Landing() {
             </p>
 
             <div style={{ display:'flex',gap:'12px',alignItems:'center',marginBottom:'36px' }}>
-              <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.28)' }}>
-                Start building →
+              <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.28)' }}>
+                Try it free →
               </Link>
               <a href="#how-it-works" className="btn-outline" style={{ color:C.textSub,padding:'13px 22px',borderRadius:'10px',fontSize:'15px',border:`1px solid ${C.border}`,background:'transparent' }}>
                 See how it works
@@ -732,8 +732,8 @@ export default function Landing() {
           <p style={{ fontSize:'16px',color:C.textSub,marginBottom:'32px',lineHeight:'1.7' }}>
             Stop switching tools. Stop losing hours. One pipeline, every stage, built around your channel.
           </p>
-          <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'14px 40px',borderRadius:'10px',fontSize:'16px',fontWeight:'700',boxShadow:'0 6px 24px rgba(224,53,53,0.28)' }}>
-            Start building →
+          <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'14px 40px',borderRadius:'10px',fontSize:'16px',fontWeight:'700',boxShadow:'0 6px 24px rgba(224,53,53,0.28)' }}>
+            Try it free →
           </Link>
           <div style={{ marginTop:'14px',fontSize:'12px',color:C.textMuted }}>
             Set up in under 2 minutes · No credit card required to explore

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { getEpisodes, getCachedTrends } from '../lib/api';
 import { useChannelProfile } from '../hooks/useChannelProfile';
 import AppLayout from '../components/ui/AppLayout';
 
 const ACCENT = '#e03535';
-const STAGE_NAMES = ['Research', 'Story', 'Narration', 'Sound', 'Visuals', 'Assembly', 'Thumbnail', 'Publish'];
+const STAGE_NAMES = ['Research', 'Story', 'Narration', 'Sound', 'Visuals', 'Assembly', 'Thumbnail', 'Metadata'];
 const STAGE_ICONS = ['🔍', '✍️', '🎙️', '🎵', '🖼️', '🎬', '🎨', '📋'];
 
 
@@ -29,11 +29,14 @@ function timeAgo(dateStr) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const subscriptionSuccess = searchParams.get('subscription') === 'success';
   const { channelProfile, hasProfile, loading: profileLoading } = useChannelProfile();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trendingTopics, setTrendingTopics] = useState([]);
   const [loadingTrends, setLoadingTrends] = useState(true);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(subscriptionSuccess);
 
   useEffect(() => {
     if (!profileLoading && !hasProfile) navigate('/onboarding');
@@ -88,6 +91,19 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
+      {showSuccessBanner && (
+        <div style={{ background: '#0a2a1a', borderBottom: '1px solid #14532d', padding: '12px 40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '13px', color: '#4ade80', flex: 1 }}>
+            🎉 <strong>Welcome to Forge Pro!</strong> Your 14-day free trial has started. No charge until your trial ends.
+          </span>
+          <button
+            onClick={() => setShowSuccessBanner(false)}
+            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '16px', padding: '0', fontFamily: 'inherit' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div style={{ padding: '32px 40px', width: '100%' }}>
 
         {/* Hero */}
@@ -258,7 +274,7 @@ export default function Dashboard() {
 
         {/* Weekly Goal */}
         {(() => {
-          const weeklyTarget = 2;
+          const weeklyTarget = channelProfile?.weekly_goal ?? 2;
           const weekStart = new Date();
           weekStart.setDate(weekStart.getDate() - weekStart.getDay());
           weekStart.setHours(0, 0, 0, 0);

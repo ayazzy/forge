@@ -10,6 +10,9 @@ import profileRoute from './routes/profile.js';
 import usageRoute from './routes/usage.js';
 import channelRoute from './routes/channel.js';
 import trendsRoute from './routes/trends.js';
+import savedTopicsRoute from './routes/savedTopics.js';
+import claudeGuestRoute from './routes/claudeGuest.js';
+import stripeRoute, { handleWebhook } from './routes/stripe.js';
 import { requireAuth } from './middleware/auth.js';
 
 dotenv.config({ path: '../.env' });
@@ -35,8 +38,12 @@ app.use(cors({
   },
   credentials: true,
 }));
+// Stripe webhook needs raw body — must be registered before express.json()
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleWebhook);
+
 app.use(express.json({ limit: '50mb' }));
 
+app.use('/api/claude/guest', claudeGuestRoute);
 app.use('/api/claude', requireAuth, claudeRoute);
 app.use('/api/elevenlabs', requireAuth, elevenlabsRoute);
 app.use('/api/ideogram', requireAuth, ideogramRoute);
@@ -46,6 +53,8 @@ app.use('/api/profile', requireAuth, profileRoute);
 app.use('/api/usage', requireAuth, usageRoute);
 app.use('/api/channel', requireAuth, channelRoute);
 app.use('/api/trends', requireAuth, trendsRoute);
+app.use('/api/saved-topics', requireAuth, savedTopicsRoute);
+app.use('/api/stripe', requireAuth, stripeRoute);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Forge API running on port ${PORT}`));
