@@ -286,6 +286,7 @@ const TESTIMONIALS = [
 ];
 
 const FEATURES = [
+  { title:'⚡ One Shot Mode', desc:'Type a topic — Forge runs research, script, titles, voice cast, and image prompts in one automated run. No clicks between stages.', highlight: true },
   { title:'Custom channel templates', desc:'Describe your channel once. Forge builds a production template tuned to your niche, tone, and style. Every video starts native.' },
   { title:'Hook scoring & retention', desc:'Score your opening hook across 5 dimensions. Find the 3 moments in your script most likely to lose viewers before you record.' },
   { title:'Multi-voice narration', desc:'Assign different AI voices to each script character. Download a complete audio package in one click.' },
@@ -429,6 +430,14 @@ export default function Landing() {
                 </div>
               ))}
             </div>
+
+            <div style={{ marginTop:'20px',display:'inline-flex',alignItems:'center',gap:'9px',background:'rgba(224,53,53,0.06)',border:`1px solid rgba(224,53,53,0.18)`,borderRadius:'10px',padding:'10px 16px' }}>
+              <span style={{ fontSize:'16px',lineHeight:1 }}>⚡</span>
+              <div>
+                <div style={{ fontSize:'12px',fontWeight:'700',color:C.red,marginBottom:'1px' }}>One Shot Mode</div>
+                <div style={{ fontSize:'12px',color:C.textSub }}>Type a topic. Get research, script, titles, voices, and image prompts — all at once.</div>
+              </div>
+            </div>
           </div>
 
           {/* Right — product mockup */}
@@ -513,6 +522,74 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* One Shot Mode */}
+      <section style={{ padding:'80px 48px',background:C.bg,borderTop:`1px solid ${C.border}` }}>
+        <div style={{ maxWidth:'960px',margin:'0 auto' }}>
+          <AnimateIn style={{ textAlign:'center',marginBottom:'52px' }}>
+            <div style={{ display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(224,53,53,0.07)',border:`1px solid rgba(224,53,53,0.18)`,borderRadius:'20px',padding:'5px 14px',marginBottom:'20px' }}>
+              <span style={{ fontSize:'13px' }}>⚡</span>
+              <span style={{ fontSize:'12px',color:C.red,fontWeight:'700',letterSpacing:'0.5px' }}>ONE SHOT MODE</span>
+            </div>
+            <h2 style={{ fontSize:'38px',fontWeight:'800',color:C.text,lineHeight:'1.1',letterSpacing:'-1px',marginBottom:'12px' }}>
+              One topic. Full production package.
+            </h2>
+            <p style={{ fontSize:'15px',color:C.textSub,maxWidth:'480px',margin:'0 auto',lineHeight:'1.7' }}>
+              Skip the eight clicks. Type a topic, hit go — Forge runs research, script, titles, voice cast, and image prompts in parallel. Available on Studio and Pro.
+            </p>
+          </AnimateIn>
+
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px' }}>
+            {/* Step by step */}
+            <AnimateIn>
+              <div style={{ background:C.bgMuted,border:`1px solid ${C.border}`,borderRadius:'14px',padding:'28px',height:'100%' }}>
+                <div style={{ fontSize:'11px',fontWeight:'700',color:C.textMuted,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:'20px' }}>Step by step</div>
+                <div style={{ display:'flex',flexDirection:'column',gap:'10px' }}>
+                  {['Enter topic','Run research','Generate script','Pick voices','Generate image prompts','Review titles & metadata'].map((step, i) => (
+                    <div key={i} style={{ display:'flex',alignItems:'center',gap:'10px' }}>
+                      <div style={{ width:'22px',height:'22px',borderRadius:'50%',border:`1.5px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                        <span style={{ fontSize:'9px',fontWeight:'700',color:C.textMuted,fontFamily:'monospace' }}>{String(i+1).padStart(2,'0')}</span>
+                      </div>
+                      <span style={{ fontSize:'13px',color:C.textSub }}>{step}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop:'24px',paddingTop:'20px',borderTop:`1px solid ${C.border}`,fontSize:'12px',color:C.textMuted }}>
+                  6 stages · multiple sessions
+                </div>
+              </div>
+            </AnimateIn>
+
+            {/* One Shot */}
+            <AnimateIn delay={80}>
+              <div style={{ background:'#fff',border:`1.5px solid rgba(224,53,53,0.3)`,borderRadius:'14px',padding:'28px',boxShadow:'0 8px 32px rgba(224,53,53,0.08)',height:'100%',position:'relative' }}>
+                <div style={{ position:'absolute',top:'-1px',left:'50%',transform:'translateX(-50%)',background:C.red,color:'#fff',fontSize:'10px',fontWeight:'800',padding:'3px 14px',borderRadius:'20px',letterSpacing:'0.5px',whiteSpace:'nowrap' }}>STUDIO & PRO</div>
+                <div style={{ fontSize:'11px',fontWeight:'700',color:C.red,letterSpacing:'1.5px',textTransform:'uppercase',marginBottom:'20px' }}>⚡ One Shot</div>
+                <div style={{ display:'flex',flexDirection:'column',gap:'10px' }}>
+                  <div style={{ display:'flex',alignItems:'center',gap:'10px' }}>
+                    <div style={{ width:'22px',height:'22px',borderRadius:'50%',background:'rgba(224,53,53,0.1)',border:`1.5px solid rgba(224,53,53,0.3)`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                      <span style={{ fontSize:'9px',fontWeight:'700',color:C.red,fontFamily:'monospace' }}>01</span>
+                    </div>
+                    <span style={{ fontSize:'13px',color:C.text,fontWeight:'600' }}>Enter a topic</span>
+                  </div>
+                  <div style={{ marginLeft:'11px',borderLeft:`2px dashed rgba(224,53,53,0.2)`,paddingLeft:'20px',paddingBottom:'4px' }}>
+                    <div style={{ fontSize:'11px',color:C.textMuted,marginBottom:'8px' }}>Forge runs in parallel →</div>
+                    {['Research brief','Full script','3 title options','Voice cast','Image prompts'].map((item, i) => (
+                      <div key={i} style={{ display:'flex',alignItems:'center',gap:'7px',marginBottom:'5px' }}>
+                        <span style={{ fontSize:'11px',color:'#16a34a',fontWeight:'700',flexShrink:0 }}>✓</span>
+                        <span style={{ fontSize:'12px',color:C.textSub }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ marginTop:'20px',paddingTop:'20px',borderTop:`1px solid rgba(224,53,53,0.1)`,fontSize:'12px',color:C.red,fontWeight:'600' }}>
+                  Everything above · one click
+                </div>
+              </div>
+            </AnimateIn>
+          </div>
+        </div>
+      </section>
+
       {/* Trend Research */}
       <section id="trends" style={{ padding:'80px 48px',background:C.bg,borderTop:`1px solid ${C.border}` }}>
         <div style={{ maxWidth:'1100px',margin:'0 auto',display:'flex',gap:'72px',alignItems:'center' }}>
@@ -572,12 +649,15 @@ export default function Landing() {
           </AnimateIn>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'12px' }}>
             {FEATURES.map((f,i) => (
-              <AnimateIn key={i} delay={i * 60}>
-                <div className="card-lift" style={{ background:C.bg,border:`1px solid ${C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
-                  <div style={{ width:'28px',height:'28px',borderRadius:'7px',background:C.redSoft,border:`1px solid ${C.redMid}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'14px' }}>
-                    <span style={{ fontSize:'10px',fontWeight:'800',color:C.red }}>{String(i+1).padStart(2,'0')}</span>
+              <AnimateIn key={i} delay={i * 60} style={i === 0 ? { gridColumn: '1 / -1' } : {}}>
+                <div className="card-lift" style={{ background: f.highlight ? 'rgba(224,53,53,0.03)' : C.bg, border:`1px solid ${f.highlight ? 'rgba(224,53,53,0.25)' : C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)', display: f.highlight ? 'flex' : 'block', alignItems: 'center', gap: f.highlight ? '24px' : 0 }}>
+                  <div style={{ display:'flex',alignItems:'center',gap:'10px',flexShrink: 0 }}>
+                    <div style={{ width:'28px',height:'28px',borderRadius:'7px',background:C.redSoft,border:`1px solid ${C.redMid}`,display:'flex',alignItems:'center',justifyContent:'center', marginBottom: f.highlight ? 0 : '14px' }}>
+                      <span style={{ fontSize:'10px',fontWeight:'800',color:C.red }}>{f.highlight ? '⚡' : String(i).padStart(2,'0')}</span>
+                    </div>
+                    {f.highlight && <div style={{ fontSize:'14px',fontWeight:'700',color:C.text }}>{f.title}</div>}
                   </div>
-                  <div style={{ fontSize:'14px',fontWeight:'700',color:C.text,marginBottom:'6px' }}>{f.title}</div>
+                  {!f.highlight && <div style={{ fontSize:'14px',fontWeight:'700',color:C.text,marginBottom:'6px' }}>{f.title}</div>}
                   <div style={{ fontSize:'13px',color:C.textSub,lineHeight:'1.65' }}>{f.desc}</div>
                 </div>
               </AnimateIn>
@@ -694,8 +774,8 @@ export default function Landing() {
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px',alignItems:'stretch' }}>
             {[
               { name:'Creator',price:'$49',period:'/mo',desc:'For creators getting started',features:['5 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research'],cta:'Start free trial →',highlighted:false },
-              { name:'Studio',price:'$99',period:'/mo',desc:'For serious creators',features:['11 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],cta:'Start free trial →',highlighted:true },
-              { name:'Pro',price:'$179',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],cta:'Start free trial →',highlighted:false },
+              { name:'Studio',price:'$99',period:'/mo',desc:'For serious creators',features:['11 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Start free trial →',highlighted:true },
+              { name:'Pro',price:'$179',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Start free trial →',highlighted:false },
             ].map((plan,i) => (
               <AnimateIn key={i} delay={i * 80}>
               <div className="pricing-card" style={{ background:C.bg,border:`1px solid ${plan.highlighted?C.red:C.border}`,borderRadius:'12px',padding:'32px 28px',position:'relative',boxShadow:plan.highlighted?'0 8px 32px rgba(224,53,53,0.1)':'0 1px 4px rgba(0,0,0,0.04)',display:'flex',flexDirection:'column',height:'100%' }}>
@@ -708,6 +788,15 @@ export default function Landing() {
                   <span style={{ fontSize:'14px',color:C.textMuted }}>{plan.period}</span>
                 </div>
                 <div style={{ fontSize:'13px',color:C.textSub,marginBottom:'24px' }}>{plan.desc}</div>
+                {plan.oneShot && (
+                  <div style={{ background:'rgba(224,53,53,0.05)',border:`1px solid rgba(224,53,53,0.18)`,borderRadius:'8px',padding:'10px 12px',display:'flex',alignItems:'flex-start',gap:'8px',marginBottom:'4px' }}>
+                    <span style={{ fontSize:'13px',lineHeight:1,marginTop:'1px',flexShrink:0 }}>⚡</span>
+                    <div>
+                      <div style={{ fontSize:'12px',fontWeight:'700',color:C.red,marginBottom:'2px' }}>One Shot Mode</div>
+                      <div style={{ fontSize:'11px',color:C.textSub,lineHeight:'1.4' }}>Full pipeline from a single topic — research, script, titles, voices, and image prompts in one go.</div>
+                    </div>
+                  </div>
+                )}
                 <div style={{ borderTop:`1px solid ${C.border}`,paddingTop:'20px',marginBottom:'24px',display:'flex',flexDirection:'column',gap:'10px',flex:1 }}>
                   {plan.features.map((f,j) => (
                     <div key={j} style={{ display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',color:j===0?C.text:C.textSub,fontWeight:j===0?'600':'400' }}>
