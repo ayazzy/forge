@@ -88,11 +88,11 @@ export default function Pricing() {
         )}
 
         {/* Plans */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", maxWidth: "860px", marginBottom: "40px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", maxWidth: "860px", marginBottom: "40px", alignItems: "stretch" }}>
           {plans.map((p) => (
             <div
               key={p.id}
-              style={{ border: `1px solid ${p.highlight ? ACCENT : "#222"}`, borderRadius: "10px", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "20px", background: "#1a1a1a", position: "relative" }}
+              style={{ border: `1px solid ${p.highlight ? ACCENT : "#222"}`, borderRadius: "10px", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "20px", background: "#1a1a1a", position: "relative", height: "100%" }}
             >
               {p.highlight && (
                 <div style={{ position: "absolute", top: "-11px", left: "50%", transform: "translateX(-50%)", background: ACCENT, color: "#fff", fontSize: "10px", fontWeight: "700", padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.5px" }}>

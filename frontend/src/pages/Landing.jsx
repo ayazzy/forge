@@ -689,16 +689,16 @@ export default function Landing() {
         <div style={{ maxWidth:'960px',margin:'0 auto' }}>
           <AnimateIn style={{ textAlign:'center',marginBottom:'48px' }}>
             <h2 style={{ fontSize:'38px',fontWeight:'800',color:C.text,marginBottom:'12px',letterSpacing:'-1px' }}>Simple pricing</h2>
-            <p style={{ fontSize:'15px',color:C.textSub }}>Bring your own API keys to start. Upgrade when you want everything managed.</p>
+            <p style={{ fontSize:'15px',color:C.textSub }}>7-day free trial on all plans. No credit card required to start.</p>
           </AnimateIn>
-          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px' }}>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px',alignItems:'stretch' }}>
             {[
-              { name:'Starter',price:'$9',period:'/mo',desc:'For creators getting started',features:['Full 8-stage pipeline','Bring your own API keys','Unlimited episodes','Custom channel template','Email support'],cta:'Get started →',highlighted:false },
-              { name:'Pro',price:'$49',period:'/mo',desc:'For serious creators',features:['Everything in Starter','Hosted AI — no keys needed','Full trend research','Priority support'],cta:'Start Pro →',highlighted:true },
-              { name:'Studio',price:'$99',period:'/mo',desc:'For teams and power creators',features:['Everything in Pro','Hosted voice AI','Higher usage limits','Team seats (soon)'],cta:'Start Studio →',highlighted:false },
+              { name:'Creator',price:'$49',period:'/mo',desc:'For creators getting started',features:['5 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research'],cta:'Start free trial →',highlighted:false },
+              { name:'Studio',price:'$99',period:'/mo',desc:'For serious creators',features:['11 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],cta:'Start free trial →',highlighted:true },
+              { name:'Pro',price:'$179',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],cta:'Start free trial →',highlighted:false },
             ].map((plan,i) => (
               <AnimateIn key={i} delay={i * 80}>
-              <div className="pricing-card" style={{ background:C.bg,border:`1px solid ${plan.highlighted?C.red:C.border}`,borderRadius:'12px',padding:'32px 28px',position:'relative',boxShadow:plan.highlighted?'0 8px 32px rgba(224,53,53,0.1)':'0 1px 4px rgba(0,0,0,0.04)' }}>
+              <div className="pricing-card" style={{ background:C.bg,border:`1px solid ${plan.highlighted?C.red:C.border}`,borderRadius:'12px',padding:'32px 28px',position:'relative',boxShadow:plan.highlighted?'0 8px 32px rgba(224,53,53,0.1)':'0 1px 4px rgba(0,0,0,0.04)',display:'flex',flexDirection:'column',height:'100%' }}>
                 {plan.highlighted && (
                   <div style={{ position:'absolute',top:'-12px',left:'50%',transform:'translateX(-50%)',background:C.red,color:'#fff',fontSize:'10px',fontWeight:'800',padding:'3px 14px',borderRadius:'20px',letterSpacing:'1px',whiteSpace:'nowrap' }}>MOST POPULAR</div>
                 )}
@@ -708,14 +708,14 @@ export default function Landing() {
                   <span style={{ fontSize:'14px',color:C.textMuted }}>{plan.period}</span>
                 </div>
                 <div style={{ fontSize:'13px',color:C.textSub,marginBottom:'24px' }}>{plan.desc}</div>
-                <div style={{ borderTop:`1px solid ${C.border}`,paddingTop:'20px',marginBottom:'24px',display:'flex',flexDirection:'column',gap:'10px' }}>
+                <div style={{ borderTop:`1px solid ${C.border}`,paddingTop:'20px',marginBottom:'24px',display:'flex',flexDirection:'column',gap:'10px',flex:1 }}>
                   {plan.features.map((f,j) => (
-                    <div key={j} style={{ display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',color:C.textSub }}>
+                    <div key={j} style={{ display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',color:j===0?C.text:C.textSub,fontWeight:j===0?'600':'400' }}>
                       <span style={{ color:'#16a34a',fontSize:'12px',flexShrink:0,fontWeight:'700' }}>✓</span> {f}
                     </div>
                   ))}
                 </div>
-                <Link to="/signup" className={plan.highlighted?'btn-red':'btn-outline'} style={{ display:'block',textAlign:'center',background:plan.highlighted?C.red:'transparent',color:plan.highlighted?'#fff':C.textSub,padding:'12px 20px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',border:plan.highlighted?'none':`1px solid ${C.border}`,boxShadow:plan.highlighted?'0 4px 14px rgba(224,53,53,0.22)':'none' }}>
+                <Link to="/try" className={plan.highlighted?'btn-red':'btn-outline'} style={{ display:'block',textAlign:'center',background:plan.highlighted?C.red:'transparent',color:plan.highlighted?'#fff':C.textSub,padding:'12px 20px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',border:plan.highlighted?'none':`1px solid ${C.border}`,boxShadow:plan.highlighted?'0 4px 14px rgba(224,53,53,0.22)':'none' }}>
                   {plan.cta}
                 </Link>
               </div>
