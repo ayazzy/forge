@@ -29,7 +29,7 @@ Return ONLY valid JSON:
 }
 CRITICAL: All timestamps must be within the ${totalMins} video duration.
 Include period-accurate instrumentation.
-Suggest 4-8 music cues, 3-5 ambient shifts, 6-12 sound effects.`, 2500);
+Suggest 4-8 music cues, 3-5 ambient shifts, 6-12 sound effects.`, 2500, 'haiku');
     try {
       setCues(JSON.parse(raw.replace(/```json|```/g, "").trim()));
     } catch { setCues({ musicBed: [], ambientLayer: [], effects: [] }); }

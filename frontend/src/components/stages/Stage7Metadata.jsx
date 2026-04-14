@@ -30,7 +30,7 @@ Return ONLY valid JSON:
   "category": "Education",
   "chapters": [{"time":"0:00","title":"chapter title"}]
 }
-CRITICAL: All chapter timestamps must fall within the ${totalMins} video duration. Space chapters evenly across the actual runtime.`, 2000);
+CRITICAL: All chapter timestamps must fall within the ${totalMins} video duration. Space chapters evenly across the actual runtime.`, 2000, 'haiku');
     const parsed = extractJSON(raw);
     if (parsed) setMeta(parsed);
     setLoading(false);

@@ -769,9 +769,9 @@ export default function Landing() {
           </AnimateIn>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px',alignItems:'stretch' }}>
             {[
-              { name:'Creator',price:'$49',period:'/mo',desc:'For creators getting started',features:['5 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research'],cta:'Get started →',highlighted:false },
-              { name:'Studio',price:'$99',period:'/mo',desc:'For serious creators',features:['11 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Get started →',highlighted:true },
-              { name:'Pro',price:'$179',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Get started →',highlighted:false },
+              { name:'Creator',price:'$39',period:'/mo',desc:'For creators getting started',features:['4 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research'],cta:'Get started →',highlighted:false },
+              { name:'Studio',price:'$79',period:'/mo',desc:'For serious creators',features:['12 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Get started →',highlighted:true },
+              { name:'Pro',price:'$149',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Get started →',highlighted:false },
             ].map((plan,i) => (
               <AnimateIn key={i} delay={i * 80}>
               <div className="pricing-card" style={{ background:C.bg,border:`1px solid ${plan.highlighted?C.red:C.border}`,borderRadius:'12px',padding:'32px 28px',position:'relative',boxShadow:plan.highlighted?'0 8px 32px rgba(224,53,53,0.1)':'0 1px 4px rgba(0,0,0,0.04)',display:'flex',flexDirection:'column',height:'100%' }}>

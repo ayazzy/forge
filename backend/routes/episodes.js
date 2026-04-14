@@ -15,7 +15,7 @@
 //   END IF;
 //
 //   v_monthly_limit := CASE v_profile.plan
-//     WHEN 'creator' THEN 5 WHEN 'studio' THEN 11 WHEN 'pro' THEN 30 ELSE 0 END;
+//     WHEN 'creator' THEN 4 WHEN 'studio' THEN 12 WHEN 'pro' THEN 30 ELSE 0 END;
 //
 //   -- Reset if past reset date
 //   IF v_profile.monthly_reset_at IS NOT NULL AND NOW() >= v_profile.monthly_reset_at THEN

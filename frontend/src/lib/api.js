@@ -10,25 +10,17 @@ async function getAuthHeader() {
   return session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
 }
 
-export async function claudeStream(prompt, onChunk, maxTokens = 4000) {
+// model: 'sonnet' (default, creative/analytical) | 'haiku' (structured/templated)
+export async function claudeStream(prompt, onChunk, maxTokens = 4000, model = 'sonnet') {
   const { data: { session } } = await supabase.auth.getSession();
   const headers = { 'Content-Type': 'application/json' };
   if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-  const endpoint = session?.access_token ? '/api/claude/stream' : '/api/claude/guest';
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const res = await fetch(`${API_BASE}/api/claude/stream`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ prompt, maxTokens }),
+    body: JSON.stringify({ prompt, maxTokens, model }),
   });
-
-  // Guest endpoint returns plain JSON — fall back gracefully
-  if (!session?.access_token) {
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    onChunk(data.text);
-    return;
-  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -54,21 +46,45 @@ export async function claudeStream(prompt, onChunk, maxTokens = 4000) {
   }
 }
 
-export async function claude(prompt, maxTokens = 1000) {
+// model: 'sonnet' (default, creative/analytical) | 'haiku' (structured/templated)
+export async function claude(prompt, maxTokens = 1000, model = 'sonnet') {
   const { data: { session } } = await supabase.auth.getSession();
-  const endpoint = session?.access_token ? '/api/claude' : '/api/claude/guest';
   const headers = { 'Content-Type': 'application/json' };
   if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const res = await fetch(`${API_BASE}/api/claude`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ prompt, maxTokens }),
+    body: JSON.stringify({ prompt, maxTokens, model }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return data.text;
 }
 
+// Cartesia TTS — replaces ElevenLabs
+export async function getCartesiaVoices() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/cartesia/voices`, { headers: { ...authHeader } });
+  if (!res.ok) throw new Error('Failed to fetch voices');
+  return res.json();
+}
+
+export async function generateCartesiaSpeech(text, voiceId, speed = 1.0) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/cartesia/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ text, voiceId, speed }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Cartesia error: ${res.status}`);
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+/** @deprecated Use generateCartesiaSpeech instead */
 export async function generateSpeech(text, voiceId, settings = {}) {
   const cleanText = text
     .replace(/\[long pause\]/g, ' ')
@@ -340,12 +356,12 @@ export async function getBilling() {
   return res.json();
 }
 
-export async function createCheckoutSession(plan = 'pro') {
+export async function createCheckoutSession(plan = 'pro', annual = false) {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/stripe/create-checkout-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
-    body: JSON.stringify({ plan }),
+    body: JSON.stringify({ plan, annual }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);

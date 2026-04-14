@@ -511,7 +511,7 @@ Return this JSON:
 Rules: hook scores are 1-5. Identify exactly 3 retention risks. Be specific — quote actual lines from the script.`;
 
     try {
-      const raw = await claude(prompt, 3000);
+      const raw = await claude(prompt, 3000, 'haiku');
       const parsed = extractJSON(raw);
       setFeedback(parsed || { error: 'Could not parse feedback. Try again.' });
     } catch (e) {

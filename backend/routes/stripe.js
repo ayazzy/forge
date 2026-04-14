@@ -18,12 +18,12 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const APP_URL = process.env.APP_URL || 'https://forge-gamma-pied.vercel.app';
 
-const PLAN_LIMITS = { creator: 5, studio: 11, pro: 30 };
+const PLAN_LIMITS = { creator: 4, studio: 12, pro: 30 };
 
 const PLANS = {
-  creator: { priceId: process.env.STRIPE_CREATOR_PRICE_ID, name: 'Creator' },
-  studio:  { priceId: process.env.STRIPE_STUDIO_PRICE_ID,  name: 'Studio'  },
-  pro:     { priceId: process.env.STRIPE_PRO_PRICE_ID,     name: 'Pro'     },
+  creator: { monthlyPriceId: process.env.STRIPE_CREATOR_PRICE_ID, annualPriceId: process.env.STRIPE_CREATOR_ANNUAL_PRICE_ID, name: 'Creator' },
+  studio:  { monthlyPriceId: process.env.STRIPE_STUDIO_PRICE_ID,  annualPriceId: process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID,  name: 'Studio'  },
+  pro:     { monthlyPriceId: process.env.STRIPE_PRO_PRICE_ID,     annualPriceId: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,     name: 'Pro'     },
 };
 
 const PACKS = {
@@ -108,16 +108,17 @@ router.get('/billing', async (req, res) => {
 // POST /api/stripe/create-checkout-session (subscription)
 router.post('/create-checkout-session', async (req, res) => {
   try {
-    const { plan } = req.body;
+    const { plan, annual = false } = req.body;
     const planConfig = PLANS[plan];
-    if (!planConfig?.priceId) return res.status(400).json({ error: 'Invalid plan selected.' });
+    const priceId = annual ? planConfig?.annualPriceId : planConfig?.monthlyPriceId;
+    if (!priceId) return res.status(400).json({ error: 'Invalid plan selected.' });
 
     const customerId = await getOrCreateCustomer(req.user.id, req.user.email);
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [{ price: planConfig.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       subscription_data: {
         metadata: { supabase_user_id: req.user.id, plan },

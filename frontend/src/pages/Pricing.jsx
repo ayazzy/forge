@@ -10,40 +10,39 @@ const plans = [
   {
     id: "creator",
     name: "Creator",
-    price: "$49",
-    period: "/mo",
-    episodes: 5,
-    features: ["5 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research"],
-    cta: "Subscribe now",
+    monthly: "$39",
+    annual: "$29",
+    episodes: 4,
+    features: ["4 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research"],
+    cta: "Get started",
   },
   {
     id: "studio",
     name: "Studio",
-    price: "$99",
-    period: "/mo",
-    episodes: 11,
-    features: ["11 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support"],
+    monthly: "$79",
+    annual: "$59",
+    episodes: 12,
+    features: ["12 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support"],
     oneShot: true,
-    cta: "Subscribe now",
+    cta: "Get started",
     highlight: true,
   },
   {
     id: "pro",
     name: "Pro",
-    price: "$179",
-    period: "/mo",
+    monthly: "$149",
+    annual: "$119",
     episodes: 30,
     features: ["30 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support", "Multiple channels (coming soon)"],
     oneShot: true,
-    cta: "Subscribe now",
+    cta: "Get started",
   },
 ];
 
-
 const packs = [
-  { id: "pack_1", episodes: 1, price: "$9",  label: "1 Episode",  desc: "A single top-up credit." },
-  { id: "pack_3", episodes: 3, price: "$24", label: "3 Episodes", desc: "Best for occasional overages." },
-  { id: "pack_5", episodes: 5, price: "$35", label: "5 Episodes", desc: "Best value per episode." },
+  { id: "pack_1", episodes: 1, price: "$8",  label: "1 Episode",  desc: "A single top-up credit." },
+  { id: "pack_3", episodes: 3, price: "$20", label: "3 Episodes", desc: "Best for occasional overages." },
+  { id: "pack_5", episodes: 5, price: "$30", label: "5 Episodes", desc: "Best value per episode." },
 ];
 
 const REASON_MESSAGES = {
@@ -61,6 +60,7 @@ export default function Pricing() {
   const [packLoading, setPackLoading] = useState(null);
   const [packError, setPackError] = useState(null);
   const [billing, setBilling] = useState(null);
+  const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'annual'
   const reason = searchParams.get("reason");
   const [reasonBannerDismissed, setReasonBannerDismissed] = useState(false);
 
@@ -68,8 +68,8 @@ export default function Pricing() {
     if (user) getBilling().then(setBilling).catch(() => {});
   }, [user]);
 
-  // Packs are only available to users with an active subscription
   const hasActivePlan = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
+  const isAnnual = billingPeriod === 'annual';
 
   const handlePackCTA = async (packId) => {
     if (!user) { navigate("/signup"); return; }
@@ -89,7 +89,7 @@ export default function Pricing() {
     setLoading(planId);
     setError(null);
     try {
-      const { url } = await createCheckoutSession(planId);
+      const { url } = await createCheckoutSession(planId, isAnnual);
       window.location.href = url;
     } catch (e) {
       setError(e.message);
@@ -101,12 +101,35 @@ export default function Pricing() {
     <AppLayout>
       <div style={{ padding: "32px 40px", maxWidth: "960px", margin: "0 auto", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Pricing</div>
-        <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "32px" }}>Your first episode is on us. Subscribe to keep creating.</div>
+        <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "24px" }}>Your first episode is on us. Subscribe to keep creating.</div>
+
+        {/* Billing period toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
+          <div style={{ display: "flex", background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "3px" }}>
+            <button
+              onClick={() => setBillingPeriod('monthly')}
+              style={{ background: !isAnnual ? "#2a2a2a" : "none", color: !isAnnual ? "#fff" : "#888", border: "none", borderRadius: "6px", padding: "6px 16px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingPeriod('annual')}
+              style={{ background: isAnnual ? "#2a2a2a" : "none", color: isAnnual ? "#fff" : "#888", border: "none", borderRadius: "6px", padding: "6px 16px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+            >
+              Annual
+            </button>
+          </div>
+          {isAnnual && (
+            <div style={{ fontSize: "12px", color: ACCENT, fontWeight: "600", background: "rgba(224,53,53,0.1)", border: "1px solid rgba(224,53,53,0.2)", borderRadius: "20px", padding: "3px 10px" }}>
+              Save ~25%
+            </div>
+          )}
+        </div>
 
         {reason && REASON_MESSAGES[reason] && !reasonBannerDismissed && (
-          <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: "#e03535", marginBottom: "20px", maxWidth: "860px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: ACCENT, marginBottom: "20px", maxWidth: "860px", display: "flex", alignItems: "center", gap: "12px" }}>
             <span style={{ flex: 1 }}>{REASON_MESSAGES[reason]}</span>
-            <button onClick={() => setReasonBannerDismissed(true)} style={{ background: "none", border: "none", color: "#e03535", cursor: "pointer", fontSize: "16px", padding: "0", fontFamily: "inherit", flexShrink: 0, opacity: 0.7 }}>×</button>
+            <button onClick={() => setReasonBannerDismissed(true)} style={{ background: "none", border: "none", color: ACCENT, cursor: "pointer", fontSize: "16px", padding: "0", fontFamily: "inherit", flexShrink: 0, opacity: 0.7 }}>×</button>
           </div>
         )}
 
@@ -131,9 +154,14 @@ export default function Pricing() {
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "700", color: "#fff", marginBottom: "8px" }}>{p.name}</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "2px" }}>
-                  <span style={{ fontSize: "28px", fontWeight: "700", color: p.highlight ? ACCENT : "#fff" }}>{p.price}</span>
-                  <span style={{ fontSize: "14px", color: "#888" }}>{p.period}</span>
+                  <span style={{ fontSize: "28px", fontWeight: "700", color: p.highlight ? ACCENT : "#fff" }}>
+                    {isAnnual ? p.annual : p.monthly}
+                  </span>
+                  <span style={{ fontSize: "14px", color: "#888" }}>/mo</span>
                 </div>
+                {isAnnual && (
+                  <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>billed annually</div>
+                )}
               </div>
               {p.oneShot && (
                 <div style={{ background: "rgba(224,53,53,0.07)", border: "1px solid rgba(224,53,53,0.2)", borderRadius: "8px", padding: "10px 12px", display: "flex", alignItems: "flex-start", gap: "10px" }}>

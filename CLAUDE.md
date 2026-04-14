@@ -9,7 +9,7 @@ Forge is a YouTube content production SaaS. Creators enter a topic, and Forge ru
 - **Auth + DB**: Supabase (Postgres + Auth)
 - **Payments**: Stripe (subscriptions + one-time packs)
 - **AI**: Anthropic Claude API via SSE streaming
-- **TTS**: ElevenLabs (planned migration to Cartesia)
+- **TTS**: Cartesia (Sonic 2024-10-01 model, replaced ElevenLabs)
 
 ## Monorepo Structure
 ```
@@ -26,14 +26,14 @@ Forge is a YouTube content production SaaS. Creators enter a topic, and Forge ru
 ```
 
 ## Plans & Pricing
-| Plan    | Price  | Episodes/mo | One Shot Mode |
-|---------|--------|-------------|---------------|
-| Creator | $49/mo | 5           | No            |
-| Studio  | $99/mo | 11          | Yes           |
-| Pro     | $179/mo| 30          | Yes           |
+| Plan    | Monthly | Annual | Episodes/mo | One Shot Mode |
+|---------|---------|--------|-------------|---------------|
+| Creator | $39/mo  | $29/mo | 4           | No            |
+| Studio  | $79/mo  | $59/mo | 12          | Yes           |
+| Pro     | $149/mo |$119/mo | 30          | Yes           |
 
-Episode packs available as one-time purchases (1, 3, 5 episodes).
-**7-day free trial** on all plans, no credit card required.
+Episode packs: 1 ep $8, 3 ep $20, 5 ep $30. Annual billing saves ~25%.
+**One free episode** for all signups, no credit card required.
 
 ## Route Protection (ProtectedRoute.jsx)
 - All app pages require auth + active plan (`requiresPlan`)

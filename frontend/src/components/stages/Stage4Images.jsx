@@ -42,7 +42,7 @@ Visual style for this channel: ${imageStyle}
 
 Also write ONE sentence (max 15 words) explaining why a new image is needed here.
 Return ONLY valid JSON:
-{"prompt":"...","why":"...","segmentIndex":${i}}`, 600);
+{"prompt":"...","why":"...","segmentIndex":${i}}`, 600, 'haiku');
       let prompt = raw, why = "";
       const p = extractJSON(raw);
       if (p?.prompt) { prompt = `${p.prompt}, ${imageStyle}`; why = p.why || ""; }

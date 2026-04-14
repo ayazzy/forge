@@ -12,6 +12,7 @@ import channelRoute from './routes/channel.js';
 import trendsRoute from './routes/trends.js';
 import savedTopicsRoute from './routes/savedTopics.js';
 import claudeStreamRoute from './routes/claudeStream.js';
+import cartesiaRoute from './routes/cartesia.js';
 import stripeRoute, { handleWebhook } from './routes/stripe.js';
 import accountRoute from './routes/account.js';
 import { requireAuth } from './middleware/auth.js';
@@ -58,6 +59,7 @@ app.use('/api/usage', requireAuth, usageRoute);
 app.use('/api/channel', requireAuth, channelRoute);
 app.use('/api/trends', requireAuth, trendsRoute);
 app.use('/api/saved-topics', requireAuth, savedTopicsRoute);
+app.use('/api/cartesia', requireAuth, cartesiaRoute);
 app.use('/api/stripe', requireAuth, stripeRoute);
 app.use('/api/account', requireAuth, accountRoute);
 

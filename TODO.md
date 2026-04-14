@@ -19,7 +19,7 @@
 
 ## Lower Effort, High Polish
 
-- [ ] **Switch ElevenLabs → Cartesia TTS** — Replace ElevenLabs with Cartesia for voice generation. Backend only change.
+- [x] **Switch ElevenLabs → Cartesia TTS** — Cartesia backend route + voice browser in Stage2. Speed slider, audio caching, 1-hr voice cache.
 - [ ] **Trends auto-refresh** — Topics marked stale after 24h should trigger background regeneration, not require a manual button click.
 - [ ] **Bulk asset export** — Download all assets for an episode as a ZIP (research brief, script, audio, images, metadata).
 - [x] **Test Stripe end-to-end** — Full checkout flow with a real card. Currently running in live mode.
@@ -62,3 +62,8 @@
 - [x] **Stage1Script copy button** — Moved to action bar alongside feedback/revise.
 - [x] **Retention rewrite box dark theme fix** — Was white-on-white; fixed to dark surface.
 - [x] **Episode credit deduction order** — Deduction now happens after successful DB insert.
+- [x] **Cartesia TTS migration** — `backend/routes/cartesia.js` with chunked generation, 1-hr voice cache. Stage2 rebuilt with voice browser (3-col grid), speed slider, audio caching, preview button.
+- [x] **Claude model tiering** — Sonnet for Stage 0, 1 (creative). Haiku for Stage 2, 3, 4, 7 (structured JSON). 30-40% cost reduction.
+- [x] **Prompt caching** — `anthropic-beta: prompt-caching-2024-07-31` with cached system prompt in both claude.js and claudeStream.js.
+- [x] **Pricing update** — Creator $39/$29, Studio $79/$59, Pro $149/$119. Annual/monthly toggle on Pricing page. Pack prices: 1ep $8, 3ep $20, 5ep $30. Plan limits: Creator 4, Studio 12, Pro 30.
+- [x] **Feature gating utility** — `frontend/src/lib/features.js` with PLAN_FEATURES map, hasFeature(), getUpgradePlan(). `UpgradePrompt.jsx` reusable component. Backend feature gating for one_shot in claude.js + claudeStream.js.

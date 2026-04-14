@@ -1,13 +1,100 @@
-import { useState } from "react";
-import { generateSpeech, claude, uploadAsset } from "../../lib/api";
+import { useState, useEffect } from "react";
+import { generateCartesiaSpeech, getCartesiaVoices, claude, uploadAsset } from "../../lib/api";
 import { injectV3Tags } from "../../lib/analysis";
 import { S, VOICE_PALETTE, COLORS, ACCENT, renderTagged } from "../../styles/theme";
 import { extractJSON } from "../../lib/parseJSON";
 
+// Voice browser: 3-col grid of Cartesia voices with preview
+function VoiceBrowser({ voices, onSelect, selected, previewText }) {
+  const [previewing, setPreviewing] = useState(null);
+  const [previewUrls, setPreviewUrls] = useState({});
+  const [search, setSearch] = useState('');
+
+  const filtered = voices.filter(v =>
+    !search || v.name?.toLowerCase().includes(search.toLowerCase()) ||
+    v.description?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handlePreview = async (voice) => {
+    if (previewing === voice.id) return;
+    if (previewUrls[voice.id]) {
+      new Audio(previewUrls[voice.id]).play();
+      return;
+    }
+    setPreviewing(voice.id);
+    try {
+      const text = previewText?.slice(0, 150) || 'Hello, this is a preview of how this voice sounds for your podcast or YouTube channel.';
+      const url = await generateCartesiaSpeech(text, voice.id, 1.0);
+      setPreviewUrls(prev => ({ ...prev, [voice.id]: url }));
+      new Audio(url).play();
+    } catch (e) {
+      console.error('Preview failed:', e);
+    } finally {
+      setPreviewing(null);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        style={{ ...S.input, marginBottom: '14px', width: '100%' }}
+        placeholder="Search voices…"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+      />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', maxHeight: '380px', overflowY: 'auto', paddingRight: '2px' }}>
+        {filtered.map(v => {
+          const isSelected = selected?.includes(v.id);
+          return (
+            <div
+              key={v.id}
+              style={{
+                background: isSelected ? 'rgba(224,53,53,0.08)' : COLORS.surfaceSecondary,
+                border: `1px solid ${isSelected ? ACCENT + '55' : COLORS.border}`,
+                borderRadius: '8px',
+                padding: '12px',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s',
+              }}
+              onClick={() => onSelect(v)}
+            >
+              <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isSelected && <span style={{ color: ACCENT, marginRight: '4px' }}>✓</span>}
+                {v.name}
+              </div>
+              {v.description && (
+                <div style={{ fontSize: '10px', color: COLORS.textTertiary, lineHeight: '1.4', marginBottom: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {v.description}
+                </div>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); handlePreview(v); }}
+                style={{ ...S.btnSecondary(previewing === v.id), fontSize: '10px', padding: '4px 8px', width: '100%' }}
+                disabled={previewing === v.id}
+              >
+                {previewing === v.id ? '…' : previewUrls[v.id] ? '▶ Replay' : '▶ Preview'}
+              </button>
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: COLORS.textTertiary, fontSize: '12px', padding: '24px 0' }}>
+            No voices match "{search}"
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Stage2({ data, onApprove, saved, isComplete, onBackToSummary }) {
-  const taggedScript = injectV3Tags(data.script);
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [voicesLoading, setVoicesLoading] = useState(true);
+  const [voicesError, setVoicesError] = useState(null);
+  const [showBrowser, setShowBrowser] = useState(null); // voice id or null
+
   const [voices, setVoices] = useState(saved?.voices || [
-    { id: "v1", name: "Narrator", voiceId: "", color: VOICE_PALETTE[0], stability: 0.45, similarity: 0.82, style: 0.35 },
+    { id: "v1", name: "Narrator", voiceId: "", speed: 1.0, color: VOICE_PALETTE[0] },
   ]);
   const [rosterReady, setRosterReady] = useState(saved?.rosterReady || false);
   const [segments, setSegments] = useState(saved?.segments || null);
@@ -16,23 +103,33 @@ function Stage2({ data, onApprove, saved, isComplete, onBackToSummary }) {
     const persisted = data.persistedAssets?.audio || {};
     return Object.keys(persisted).length > 0 ? persisted : {};
   });
-  const [persistedAudioUrls, setPersistedAudioUrls] = useState({});
   const [generating, setGenerating] = useState({});
   const [errors, setErrors] = useState({});
   const [generatingAll, setGeneratingAll] = useState(false);
   const [activeSegment, setActiveSegment] = useState(0);
-  const [showSettings, setShowSettings] = useState(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [generateProgress, setGenerateProgress] = useState({ current: 0, total: 0 });
   const [zipping, setZipping] = useState(false);
+
+  useEffect(() => {
+    getCartesiaVoices()
+      .then(setAvailableVoices)
+      .catch(e => setVoicesError(e.message))
+      .finally(() => setVoicesLoading(false));
+  }, []);
 
   const addVoice = () => {
     if (voices.length >= 6) return;
     const id = `v${Date.now()}`;
-    setVoices(prev => [...prev, { id, name: `Voice ${prev.length + 1}`, voiceId: "", color: VOICE_PALETTE[prev.length % VOICE_PALETTE.length], stability: 0.6, similarity: 0.8, style: 0.2 }]);
+    setVoices(prev => [...prev, { id, name: `Voice ${prev.length + 1}`, voiceId: "", speed: 1.0, color: VOICE_PALETTE[prev.length % VOICE_PALETTE.length] }]);
   };
   const removeVoice = (id) => setVoices(prev => prev.filter(v => v.id !== id));
   const updateVoice = (id, field, value) => setVoices(prev => prev.map(v => v.id === id ? { ...v, [field]: value } : v));
+
+  const assignVoiceFromBrowser = (voiceRow, cartesiaVoice) => {
+    updateVoice(voiceRow.id, 'voiceId', cartesiaVoice.id);
+    updateVoice(voiceRow.id, 'name', voiceRow.name === 'Narrator' || voiceRow.name.startsWith('Voice ') ? cartesiaVoice.name : voiceRow.name);
+    setShowBrowser(null);
+  };
 
   const detectSegments = async () => {
     setDetecting(true);
@@ -43,7 +140,7 @@ Assign diary entries, letters, or quoted primary sources to secondary voices if 
 Script:
 ${data.script}
 Return ONLY valid JSON:
-{"segments":[{"text":"exact paragraph text","voice":"${voices[0].name}"}]}`, 4000);
+{"segments":[{"text":"exact paragraph text","voice":"${voices[0].name}"}]}`, 4000, 'haiku');
     const parsedResult = extractJSON(raw);
     try {
       const parsed = parsedResult || (() => { throw new Error('parse failed'); })();
@@ -61,13 +158,15 @@ Return ONLY valid JSON:
     setDetecting(false);
   };
 
-  const generateSegment = async (seg) => {
+  const generateSegment = async (seg, force = false) => {
     const voice = voices.find(v => v.id === seg.voiceId);
-    if (!voice?.voiceId) { setErrors(prev => ({ ...prev, [seg.id]: `No voice ID set for "${voice?.name}"` })); return; }
+    if (!voice?.voiceId) { setErrors(prev => ({ ...prev, [seg.id]: `No voice selected for "${voice?.name}"` })); return; }
+    // Audio caching: require explicit force flag to re-generate
+    if (audioUrls[seg.id] && !force) return;
     setGenerating(prev => ({ ...prev, [seg.id]: true }));
     setErrors(prev => ({ ...prev, [seg.id]: null }));
     try {
-      const url = await generateSpeech(injectV3Tags(seg.text), voice.voiceId, { stability: voice.stability, similarity: voice.similarity, style: voice.style });
+      const url = await generateCartesiaSpeech(injectV3Tags(seg.text), voice.voiceId, voice.speed || 1.0);
       setAudioUrls(prev => ({ ...prev, [seg.id]: url }));
       if (data.currentEpisodeId) {
         try {
@@ -75,8 +174,7 @@ Return ONLY valid JSON:
           const blob = await res.blob();
           const segIndex = parseInt(seg.id.replace("seg-", ""), 10);
           const fileName = `${data.episode ? `ep${data.episode}_` : ""}seg${String(segIndex + 1).padStart(2, "0")}_${voice.name}.mp3`;
-          const asset = await uploadAsset({ episodeId: data.currentEpisodeId, stage: 2, type: "audio", segmentIndex: segIndex, fileBlob: blob, fileName, mimeType: "audio/mpeg" });
-          setPersistedAudioUrls(prev => ({ ...prev, [seg.id]: asset.url }));
+          await uploadAsset({ episodeId: data.currentEpisodeId, stage: 2, type: "audio", segmentIndex: segIndex, fileBlob: blob, fileName, mimeType: "audio/mpeg" });
         } catch (uploadErr) { console.warn("Asset upload failed (non-blocking):", uploadErr); }
       }
     } catch (e) {
@@ -92,7 +190,7 @@ Return ONLY valid JSON:
     setGenerateProgress({ current: 0, total: toGenerate.length });
     for (let i = 0; i < toGenerate.length; i++) {
       setGenerateProgress({ current: i + 1, total: toGenerate.length });
-      await generateSegment(toGenerate[i]);
+      await generateSegment(toGenerate[i], false);
     }
     setGeneratingAll(false);
     setGenerateProgress({ current: 0, total: 0 });
@@ -126,7 +224,7 @@ Return ONLY valid JSON:
         const voice = voices.find(v => v.id === seg.voiceId);
         const res = await fetch(url);
         const blob = await res.blob();
-        const filename = `${data.episode ? `ep${data.episode}_` : ""}seg${String(i + 1).padStart(2, "00")}_${voice?.name || "voice"}.mp3`;
+        const filename = `${data.episode ? `ep${data.episode}_` : "episode_"}seg${String(i + 1).padStart(2, "00")}_${voice?.name || "voice"}.mp3`;
         zip.file(filename, blob);
       }
       const content = await zip.generateAsync({ type: "blob" });
@@ -138,18 +236,9 @@ Return ONLY valid JSON:
     setZipping(false);
   };
 
-  const stats = (() => {
-    const t = taggedScript;
-    return {
-      short: (t.match(/\[short pause\]/g) || []).length,
-      pause: (t.match(/\[pause\]/g) || []).length,
-      long: (t.match(/\[long pause\]/g) || []).length,
-      dramatic: (t.match(/\[dramatic tone\]/g) || []).length,
-    };
-  })();
-
   const allGenerated = segments && segments.every(s => !!audioUrls[s.id]);
   const anyGenerated = segments && segments.some(s => !!audioUrls[s.id]);
+  const selectedVoiceIds = voices.map(v => v.voiceId).filter(Boolean);
 
   return (
     <div>
@@ -157,7 +246,7 @@ Return ONLY valid JSON:
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0" }}>
         <div>
           <div style={S.sectionTitle}>Narration</div>
-          <div style={S.sectionSubtitle}>Set up your voices and generate audio for each segment of your script.</div>
+          <div style={S.sectionSubtitle}>Pick voices from the browser, set speed, and generate audio for each segment.</div>
         </div>
         {isComplete && (
           <button onClick={onBackToSummary} style={{ ...S.btnGhost, marginTop: "4px", whiteSpace: "nowrap" }}>
@@ -169,11 +258,18 @@ Return ONLY valid JSON:
       {/* Step 1: Voice roster */}
       <div style={{ ...S.card, marginBottom: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text }}>Your Voices</div>
+          <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text }}>Your Cast</div>
           {voices.length < 6 && (
             <button style={{ ...S.btnSecondary(false), fontSize: "11px", padding: "6px 12px" }} onClick={addVoice}>+ Add Voice</button>
           )}
         </div>
+
+        {voicesError && (
+          <div style={{ padding: "10px 14px", background: "#2a1515", border: "1px solid #3a1515", borderRadius: "8px", color: "#e03535", fontSize: "12px", marginBottom: "12px" }}>
+            Could not load voices: {voicesError}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {voices.map((v) => (
             <div key={v.id} style={{ background: COLORS.surfaceSecondary, border: `1px solid ${COLORS.border}`, borderRadius: "8px", overflow: "hidden" }}>
@@ -185,54 +281,62 @@ Return ONLY valid JSON:
                   onChange={e => updateVoice(v.id, "name", e.target.value)}
                   placeholder="Voice name"
                 />
-                <input
-                  style={{ ...S.input, flex: 1, fontFamily: "monospace", fontSize: "12px", background: COLORS.surface }}
-                  value={v.voiceId}
-                  onChange={e => updateVoice(v.id, "voiceId", e.target.value)}
-                  placeholder="Paste Voice ID"
-                />
                 <button
-                  onClick={() => setShowSettings(showSettings === v.id ? null : v.id)}
-                  style={{ ...S.btnSecondary(showSettings === v.id), fontSize: "11px", padding: "7px 12px", whiteSpace: "nowrap", flexShrink: 0 }}
+                  onClick={() => setShowBrowser(showBrowser === v.id ? null : v.id)}
+                  style={{ ...S.btnSecondary(showBrowser === v.id), fontSize: "11px", padding: "7px 12px", whiteSpace: "nowrap", flexShrink: 0 }}
                 >
-                  Advanced
+                  {v.voiceId ? (
+                    <span>✓ {availableVoices.find(av => av.id === v.voiceId)?.name || 'Voice selected'}</span>
+                  ) : (
+                    voicesLoading ? 'Loading…' : 'Browse Voices'
+                  )}
                 </button>
                 {voices.length > 1 && (
                   <button onClick={() => removeVoice(v.id)} style={{ background: "none", border: "none", color: COLORS.textTertiary, cursor: "pointer", fontSize: "18px", padding: "0 4px", lineHeight: "1" }}>×</button>
                 )}
               </div>
-              <div style={{ fontSize: "11px", color: COLORS.textTertiary, padding: "0 14px 10px 28px" }}>
-                Find your Voice ID in your account → Voices → click your voice → ID
+
+              {/* Speed slider */}
+              <div style={{ padding: "0 14px 12px 28px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                  <span style={S.label}>Speed</span>
+                  <span style={{ fontSize: "11px", color: COLORS.textSecondary }}>{(v.speed || 1.0).toFixed(1)}×</span>
+                </div>
+                <input
+                  type="range" min="0.5" max="2.0" step="0.1"
+                  value={v.speed || 1.0}
+                  onChange={e => updateVoice(v.id, "speed", parseFloat(e.target.value))}
+                  style={S.slider}
+                />
               </div>
-              {showSettings === v.id && (
-                <div style={{ padding: "14px 20px", borderTop: `1px solid ${COLORS.border}`, display: "flex", flexDirection: "column", gap: "14px", background: COLORS.surface }}>
-                  {[
-                    { key: "stability", label: "Stability", hint: "Lower = more expressive" },
-                    { key: "similarity", label: "Similarity", hint: "Higher = stays closer to voice" },
-                    { key: "style", label: "Style", hint: "Higher = more dramatic" },
-                  ].map(({ key, label, hint }) => (
-                    <div key={key}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span style={S.label}>{label}</span>
-                        <span style={{ fontSize: "11px", color: COLORS.textSecondary }}>
-                          {v[key].toFixed(2)} <span style={{ color: COLORS.textTertiary }}>— {hint}</span>
-                        </span>
-                      </div>
-                      <input type="range" min="0" max="1" step="0.01" value={v[key]} onChange={e => updateVoice(v.id, key, parseFloat(e.target.value))} style={S.slider} />
-                    </div>
-                  ))}
+
+              {/* Voice browser panel */}
+              {showBrowser === v.id && (
+                <div style={{ padding: "14px 16px", borderTop: `1px solid ${COLORS.border}`, background: COLORS.surface }}>
+                  {voicesLoading ? (
+                    <div style={{ textAlign: "center", color: COLORS.textTertiary, fontSize: "12px", padding: "20px 0" }}>Loading voices…</div>
+                  ) : (
+                    <VoiceBrowser
+                      voices={availableVoices}
+                      onSelect={cartesiaVoice => assignVoiceFromBrowser(v, cartesiaVoice)}
+                      selected={selectedVoiceIds}
+                      previewText={data.script}
+                    />
+                  )}
+                  {/* TODO: Pro plan — voice cloning upload will appear here */}
                 </div>
               )}
             </div>
           ))}
         </div>
+
         {!rosterReady && (
           <button
-            style={{ ...S.btnPrimary(voices.some(v => !v.voiceId.trim())), marginTop: "16px" }}
+            style={{ ...S.btnPrimary(voices.some(v => !v.voiceId)), marginTop: "16px" }}
             onClick={() => setRosterReady(true)}
-            disabled={voices.some(v => !v.voiceId.trim())}
+            disabled={voices.some(v => !v.voiceId)}
           >
-            Confirm Voices &amp; Continue →
+            Confirm Cast &amp; Continue →
           </button>
         )}
         {rosterReady && (
@@ -330,48 +434,33 @@ Return ONLY valid JSON:
       {/* Step 3: Generate Audio */}
       {segments && (
         <div style={{ ...S.card, marginBottom: "0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-            <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text }}>Generate Audio</div>
-            <button
-              onClick={() => setShowAdvanced(v => !v)}
-              style={{ ...S.btnGhost, fontSize: "11px", padding: "4px 8px" }}
-            >
-              {showAdvanced ? "Hide tag stats" : "Show tag stats"}
-            </button>
-          </div>
-
-          {showAdvanced && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
-              {[
-                { label: "Short Pause", value: stats.short, color: "#f59e0b" },
-                { label: "Pause", value: stats.pause, color: "#d97706" },
-                { label: "Long Pause", value: stats.long, color: "#ef4444" },
-                { label: "Dramatic", value: stats.dramatic, color: "#8b5cf6" },
-              ].map(s => (
-                <div key={s.label} style={{ background: COLORS.surfaceSecondary, borderRadius: "8px", padding: "12px", textAlign: "center" }}>
-                  <div style={{ fontSize: "22px", fontWeight: "700", color: s.color }}>{s.value}</div>
-                  <div style={{ fontSize: "10px", color: COLORS.textTertiary, marginTop: "2px" }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text, marginBottom: "14px" }}>Generate Audio</div>
 
           {segments[activeSegment] && (() => {
             const seg = segments[activeSegment];
             const voice = voices.find(v => v.id === seg.voiceId) || voices[0];
+            const hasAudio = !!audioUrls[seg.id];
             return (
               <div style={{ ...S.cardElevated, marginBottom: "16px" }}>
                 <div style={{ fontSize: "12px", color: voice.color, fontWeight: "600", marginBottom: "10px" }}>
                   Segment {activeSegment + 1} of {segments.length} — {voice.name}
+                  <span style={{ color: COLORS.textTertiary, fontWeight: "400", marginLeft: "8px" }}>{voice.speed?.toFixed(1) || '1.0'}× speed</span>
                 </div>
                 <div style={{ fontSize: "12px", color: COLORS.textSecondary, lineHeight: "1.8", maxHeight: "120px", overflowY: "auto", fontFamily: "monospace", marginBottom: "14px" }}>
                   {renderTagged(injectV3Tags(seg.text))}
                 </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                  <button style={{ ...S.btnPrimary(generating[seg.id]), flex: 1, minWidth: "140px" }} onClick={() => generateSegment(seg)} disabled={generating[seg.id]}>
-                    {generating[seg.id] ? "Generating…" : audioUrls[seg.id] ? "Regenerate" : "Generate"}
+                  <button
+                    style={{ ...S.btnPrimary(generating[seg.id]), flex: 1, minWidth: "140px" }}
+                    onClick={() => {
+                      if (hasAudio && !window.confirm('Regenerate this segment? The existing audio will be replaced.')) return;
+                      generateSegment(seg, true);
+                    }}
+                    disabled={generating[seg.id]}
+                  >
+                    {generating[seg.id] ? "Generating…" : hasAudio ? "Regenerate" : "Generate"}
                   </button>
-                  {audioUrls[seg.id] && (
+                  {hasAudio && (
                     <>
                       <audio key={audioUrls[seg.id]} controls src={audioUrls[seg.id]} style={{ flex: 2, minWidth: "180px", height: "34px" }} />
                       <button style={S.btnSecondary(false)} onClick={() => downloadSegment(seg, activeSegment)}>↓</button>
@@ -394,7 +483,7 @@ Return ONLY valid JSON:
               style={{ ...S.btnPrimary(generatingAll || allGenerated), flex: 2 }}
               onClick={() => {
                 const remaining = segments.filter(s => !audioUrls[s.id]).length;
-                if (remaining > 0 && !window.confirm(`Generate ${remaining} remaining segment${remaining > 1 ? "s" : ""}? This may take ${Math.round(remaining * 1.5)} minutes.`)) return;
+                if (remaining > 0 && !window.confirm(`Generate ${remaining} remaining segment${remaining > 1 ? "s" : ""}? This may take a moment.`)) return;
                 generateAll();
               }}
               disabled={generatingAll || allGenerated}
@@ -403,7 +492,7 @@ Return ONLY valid JSON:
                 ? `Generating ${generateProgress.current} of ${generateProgress.total}…`
                 : allGenerated
                 ? "✓ All Generated"
-                : `Generate Remaining ${segments.filter(s => !audioUrls[s.id]).length}`}
+                : `Generate Remaining (${segments.filter(s => !audioUrls[s.id]).length})`}
             </button>
           </div>
 
@@ -414,7 +503,7 @@ Return ONLY valid JSON:
               </button>
               {allGenerated && (
                 <button style={S.btnSecondary(false)} onClick={downloadAllZip} disabled={zipping}>
-                  {zipping ? "Zipping…" : "↓ Download ZIP"}
+                  {zipping ? "Zipping…" : "↓ ZIP"}
                 </button>
               )}
             </div>
