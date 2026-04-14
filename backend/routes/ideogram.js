@@ -1,5 +1,6 @@
 import express from 'express';
 import { trackUsage, checkUsageLimit } from '../lib/usage.js';
+import { safeError } from '../lib/errors.js';
 const router = express.Router();
 
 router.post('/', async (req, res) => {
@@ -31,7 +32,7 @@ router.post('/', async (req, res) => {
 
     res.json({ url: data.data?.[0]?.url || null });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 

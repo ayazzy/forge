@@ -196,7 +196,7 @@ export async function getProfile() {
 
 export async function deleteAccount() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/profile/account`, {
+  const res = await fetch(`${API_BASE}/api/account`, {
     method: 'DELETE',
     headers: { ...authHeader },
   });

@@ -1,10 +1,19 @@
 import express from 'express';
 import { trackUsage, checkUsageLimit } from '../lib/usage.js';
+import { safeError } from '../lib/errors.js';
 
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  const { prompt, maxTokens = 4000 } = req.body;
+  // 1.4 — Input validation
+  const { prompt, maxTokens: rawMax = 4000 } = req.body;
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+    return res.status(400).json({ error: 'Prompt is required.' });
+  }
+  if (prompt.length > 15000) {
+    return res.status(400).json({ error: 'Prompt too long. Maximum 15,000 characters.' });
+  }
+  const maxTokens = Math.min(Math.max(1, parseInt(rawMax) || 4000), 8000);
 
   const { allowed, used, limit } = await checkUsageLimit(req.user.id, 'claude_calls');
   if (!allowed) {
@@ -62,7 +71,8 @@ router.post('/', async (req, res) => {
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (e) {
-    res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+    // Return generic error over SSE stream
+    res.write(`data: ${JSON.stringify({ error: 'Generation failed. Please try again.' })}\n\n`);
     res.end();
   }
 });

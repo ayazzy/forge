@@ -1,5 +1,6 @@
 import express from 'express';
 import { trackUsage, checkUsageLimit } from '../lib/usage.js';
+import { safeError } from '../lib/errors.js';
 const router = express.Router();
 
 router.post('/:voiceId', async (req, res) => {
@@ -32,7 +33,7 @@ router.post('/:voiceId', async (req, res) => {
     res.set('Content-Type', 'audio/mpeg');
     res.send(Buffer.from(buffer));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 

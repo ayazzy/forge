@@ -1,3 +1,12 @@
+// SQL to run in Supabase SQL editor (1.6 — webhook idempotency):
+// CREATE TABLE processed_events (
+//   event_id TEXT PRIMARY KEY,
+//   processed_at TIMESTAMPTZ DEFAULT NOW()
+// );
+// CREATE INDEX idx_processed_events_at ON processed_events(processed_at);
+// Optional: auto-cleanup old events
+// DELETE FROM processed_events WHERE processed_at < NOW() - INTERVAL '30 days';
+
 import express from 'express';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
@@ -100,7 +109,7 @@ router.post('/create-checkout-session', async (req, res) => {
   try {
     const { plan } = req.body;
     const planConfig = PLANS[plan];
-    if (!planConfig?.priceId) return res.status(400).json({ error: 'Invalid plan' });
+    if (!planConfig?.priceId) return res.status(400).json({ error: 'Invalid plan selected.' });
 
     const customerId = await getOrCreateCustomer(req.user.id, req.user.email);
 
@@ -120,7 +129,7 @@ router.post('/create-checkout-session', async (req, res) => {
     res.json({ url: session.url });
   } catch (e) {
     console.error('Checkout session error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Failed to create checkout session.' });
   }
 });
 
@@ -149,7 +158,7 @@ router.post('/create-pack-checkout-session', async (req, res) => {
     res.json({ url: session.url });
   } catch (e) {
     console.error('Pack checkout error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Failed to create checkout session.' });
   }
 });
 
@@ -162,7 +171,7 @@ router.post('/create-portal-session', async (req, res) => {
       .eq('id', req.user.id)
       .single();
 
-    if (!profile?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found' });
+    if (!profile?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found.' });
 
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
@@ -172,7 +181,7 @@ router.post('/create-portal-session', async (req, res) => {
     res.json({ url: session.url });
   } catch (e) {
     console.error('Portal session error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Failed to open billing portal.' });
   }
 });
 
@@ -188,6 +197,21 @@ export async function handleWebhook(req, res) {
     console.error('Webhook signature failed:', e.message);
     return res.status(400).send(`Webhook Error: ${e.message}`);
   }
+
+  // 1.6 — Idempotency: skip events we've already processed to prevent replay attacks
+  // and double-crediting on pack purchases
+  const { data: existingEvent } = await supabase
+    .from('processed_events')
+    .select('event_id')
+    .eq('event_id', event.id)
+    .single();
+
+  if (existingEvent) {
+    return res.json({ received: true });
+  }
+
+  // Mark event as processed before handling (insert first to handle concurrent webhooks)
+  await supabase.from('processed_events').insert({ event_id: event.id });
 
   try {
     switch (event.type) {
