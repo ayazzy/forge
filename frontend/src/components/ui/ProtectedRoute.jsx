@@ -29,8 +29,13 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
       .catch(() => { setBilling(null); return null; });
 
   useEffect(() => {
-    if (!requiresPlan || !user) {
+    if (!requiresPlan) {
       setBillingLoading(false);
+      return;
+    }
+    if (!user) {
+      // Keep billingLoading = true while auth is still resolving — don't let a null
+      // user short-circuit the billing check and cause a premature /pricing redirect.
       return;
     }
     // Use fresh cache synchronously to avoid a flicker
@@ -68,7 +73,7 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
 
   if (requiresPlan) {
     const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
-    if (!isActive) return <Navigate to="/pricing" replace />;
+if (!isActive) return <Navigate to="/pricing" replace />;
   }
 
   return children;

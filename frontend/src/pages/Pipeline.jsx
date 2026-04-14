@@ -49,6 +49,10 @@ export default function Pipeline() {
   const [billing, setBilling] = useState(null);
 
   // One-shot state
+  const [stageHistory, setStageHistory] = useState({});
+  const [stageVersionKeys, setStageVersionKeys] = useState({});
+
+  // One-shot state
   const [showOneShot, setShowOneShot] = useState(false);
   const [oneShotUpgradePrompt, setOneShotUpgradePrompt] = useState(false);
   const [oneShotTopic, setOneShotTopic] = useState('');
@@ -121,12 +125,20 @@ export default function Pipeline() {
   };
 
   const handleApprove = async (stage, data) => {
+    // Capture previous version before overwriting
+    const prevData = stageData[stage];
+    const newHistory = prevData
+      ? [{ data: prevData, savedAt: new Date().toISOString() }, ...(stageHistory[stage] || [])].slice(0, 2)
+      : (stageHistory[stage] || []);
+    const newStageHistory = { ...stageHistory, [stage]: newHistory };
+
     const newStageData = { ...stageData, [stage]: data };
     const newCompleted = new Set([...completedStages, stage]);
     const newActive = stage + 1;
     const merged = Object.values(newStageData).reduce((acc, d) => ({ ...acc, ...d }), {});
 
     setStageData(newStageData);
+    setStageHistory(newStageHistory);
     setCompletedStages(newCompleted);
     setActiveStage(newActive);
 
@@ -135,7 +147,7 @@ export default function Pipeline() {
         await updateEpisode(currentEpisodeId, {
           active_stage: newActive,
           completed_stages: [...newCompleted],
-          stage_data: newStageData,
+          stage_data: { ...newStageData, _history: newStageHistory },
           title: merged.topic || null,
           episode_number: merged.episode || null,
         });
@@ -144,7 +156,7 @@ export default function Pipeline() {
           const episode = await createEpisode({
             active_stage: newActive,
             completed_stages: [...newCompleted],
-            stage_data: newStageData,
+            stage_data: { ...newStageData, _history: newStageHistory },
             title: merged.topic || null,
             episode_number: merged.episode || null,
             status: 'draft',
@@ -167,13 +179,18 @@ export default function Pipeline() {
     setActiveStage(0);
     setCompletedStages(new Set());
     setStageData({});
+    setStageHistory({});
+    setStageVersionKeys({});
     setCurrentEpisodeId(null);
     setPersistedAssets({ audio: {}, images: {} });
     setShowResetConfirm(false);
   };
 
   const handleLoadEpisode = (ep) => {
-    setStageData(ep.stage_data || {});
+    const { _history, ...stagesOnly } = ep.stage_data || {};
+    setStageData(stagesOnly);
+    setStageHistory(_history || {});
+    setStageVersionKeys({});
     setCompletedStages(new Set(ep.completed_stages || []));
     setActiveStage(ep.active_stage || 0);
     setCurrentEpisodeId(ep.id);
@@ -182,6 +199,34 @@ export default function Pipeline() {
   const handleDeleteEpisode = async (id) => {
     await deleteEpisode(id);
     await loadEpisodes();
+  };
+
+  const handleRestoreVersion = async (stage, versionIdx) => {
+    const versionItem = stageHistory[stage]?.[versionIdx];
+    if (!versionItem) return;
+
+    const currentData = stageData[stage];
+    const remainingHistory = (stageHistory[stage] || []).filter((_, i) => i !== versionIdx);
+    const newHistory = currentData
+      ? [{ data: currentData, savedAt: new Date().toISOString() }, ...remainingHistory].slice(0, 2)
+      : remainingHistory.slice(0, 2);
+
+    const newStageHistory = { ...stageHistory, [stage]: newHistory };
+    const newStageData = { ...stageData, [stage]: versionItem.data };
+
+    setStageData(newStageData);
+    setStageHistory(newStageHistory);
+    setStageVersionKeys(prev => ({ ...prev, [stage]: (prev[stage] || 0) + 1 }));
+
+    if (currentEpisodeId) {
+      try {
+        await updateEpisode(currentEpisodeId, {
+          stage_data: { ...newStageData, _history: newStageHistory },
+        });
+      } catch (e) {
+        console.error('Failed to save after restore:', e);
+      }
+    }
   };
 
   const ONESHOT_STEPS = {
@@ -543,6 +588,38 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         completedStages={completedStages}
         onStageClick={setActiveStage}
       />
+
+      {/* Version history bar */}
+      {stageHistory[activeStage]?.length > 0 && (
+        <div style={{ background: '#161616', borderBottom: '1px solid #1e1e1e', padding: '0 32px', display: 'flex', alignItems: 'center', gap: '10px', height: '36px' }}>
+          <span style={{ fontSize: '10px', color: '#444', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>History</span>
+          <div style={{ width: '1px', height: '14px', background: '#252525', flexShrink: 0 }} />
+          {/* Current version */}
+          <div style={{ fontSize: '11px', color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '4px', padding: '2px 8px', fontWeight: '600', flexShrink: 0 }}>
+            Current
+          </div>
+          {stageHistory[activeStage].map((item, idx) => {
+            const d = new Date(item.savedAt);
+            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const label = `v${stageHistory[activeStage].length - idx}`;
+            return (
+              <button
+                key={idx}
+                onClick={() => handleRestoreVersion(activeStage, idx)}
+                style={{ fontSize: '11px', color: '#555', background: 'none', border: '1px solid #2a2a2a', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#888'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
+                title={`Restore ${label} (saved ${timeStr})`}
+              >
+                {label} <span style={{ color: '#333' }}>·</span> {timeStr}
+              </button>
+            );
+          })}
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: '10px', color: '#333' }}>Click a version to restore</span>
+        </div>
+      )}
+
       <div style={{ ...S.content, maxWidth: 'none', width: '100%' }}>
         {isComplete && activeStage >= 8 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center" }}>
@@ -577,14 +654,14 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
           </div>
         ) : (
           <>
-            {activeStage === 0 && <Stage0Research onApprove={d => handleApprove(0, d)} saved={stageData[0]} data={mergedData} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 1 && <Stage1Script onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 2 && <Stage2Voiceover data={mergedData} onApprove={d => handleApprove(2, d)} saved={stageData[2]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 3 && <Stage3Sound data={mergedData} onApprove={d => handleApprove(3, d)} saved={stageData[3]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 4 && <Stage4Images data={mergedData} onApprove={d => handleApprove(4, d)} saved={stageData[4]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 5 && <Stage5Assembly data={mergedData} onApprove={d => handleApprove(5, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 6 && <Stage6Thumbnail data={mergedData} onApprove={d => handleApprove(6, d)} saved={stageData[6]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 7 && <Stage7Metadata data={mergedData} saved={stageData[7]} onApprove={d => handleApprove(7, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 0 && <Stage0Research key={stageVersionKeys[0] || 0} onApprove={d => handleApprove(0, d)} saved={stageData[0]} data={mergedData} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 1 && <Stage1Script key={stageVersionKeys[1] || 0} onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 2 && <Stage2Voiceover key={stageVersionKeys[2] || 0} data={mergedData} onApprove={d => handleApprove(2, d)} saved={stageData[2]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 3 && <Stage3Sound key={stageVersionKeys[3] || 0} data={mergedData} onApprove={d => handleApprove(3, d)} saved={stageData[3]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 4 && <Stage4Images key={stageVersionKeys[4] || 0} data={mergedData} onApprove={d => handleApprove(4, d)} saved={stageData[4]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 5 && <Stage5Assembly key={stageVersionKeys[5] || 0} data={mergedData} onApprove={d => handleApprove(5, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 6 && <Stage6Thumbnail key={stageVersionKeys[6] || 0} data={mergedData} onApprove={d => handleApprove(6, d)} saved={stageData[6]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 7 && <Stage7Metadata key={stageVersionKeys[7] || 0} data={mergedData} saved={stageData[7]} onApprove={d => handleApprove(7, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
           </>
         )}
       </div>

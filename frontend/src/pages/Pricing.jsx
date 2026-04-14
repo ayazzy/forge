@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { createCheckoutSession, createPackCheckoutSession } from "../lib/api";
+import { createCheckoutSession } from "../lib/api";
 import AppLayout from "../components/ui/AppLayout";
 
 const ACCENT = "#e03535";
@@ -39,11 +39,6 @@ const plans = [
   },
 ];
 
-const packs = [
-  { id: "pack_1", label: "1 episode", price: "$9" },
-  { id: "pack_3", label: "3 episodes", price: "$24" },
-  { id: "pack_5", label: "5 episodes", price: "$38" },
-];
 
 export default function Pricing() {
   const { user } = useAuth();
@@ -57,19 +52,6 @@ export default function Pricing() {
     setError(null);
     try {
       const { url } = await createCheckoutSession(planId);
-      window.location.href = url;
-    } catch (e) {
-      setError(e.message);
-      setLoading(null);
-    }
-  };
-
-  const handlePackCTA = async (packId) => {
-    if (!user) { navigate("/signup"); return; }
-    setLoading(packId);
-    setError(null);
-    try {
-      const { url } = await createPackCheckoutSession(packId);
       window.location.href = url;
     } catch (e) {
       setError(e.message);
@@ -133,36 +115,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        {/* Episode packs */}
-        <div style={{ maxWidth: "860px" }}>
-          <div style={{ fontSize: "13px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Need more episodes?</div>
-          <div style={{ fontSize: "12px", color: "#555", marginBottom: "16px" }}>One-time purchase. Credits never expire and stack on top of your monthly allowance.</div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            {packs.map((pack) => (
-              <div
-                key={pack.id}
-                style={{ background: "#1a1a1a", border: "1px solid #222", borderRadius: "10px", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1 }}
-              >
-                <div>
-                  <div style={{ fontSize: "14px", fontWeight: "600", color: "#fff", marginBottom: "2px" }}>{pack.label}</div>
-                  <div style={{ fontSize: "12px", color: "#555" }}>one-time</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <span style={{ fontSize: "18px", fontWeight: "700", color: "#fff" }}>{pack.price}</span>
-                  <button
-                    onClick={() => handlePackCTA(pack.id)}
-                    disabled={!!loading}
-                    style={{ background: loading === pack.id ? "#2a2a2a" : "#222", color: loading === pack.id ? "#555" : "#888", border: "1px solid #333", borderRadius: "6px", padding: "7px 14px", fontSize: "12px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-                  >
-                    {loading === pack.id ? "..." : "Buy →"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ marginTop: "24px", fontSize: "12px", color: "#333", maxWidth: "860px" }}>
+        <div style={{ marginTop: "8px", fontSize: "12px", color: "#333", maxWidth: "860px" }}>
           Trial ends after 7 days. Cancel anytime from Settings before being charged.
         </div>
       </div>

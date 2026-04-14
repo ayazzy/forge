@@ -137,6 +137,20 @@ export async function getChannelProfile() {
   return res.json();
 }
 
+export async function getChannelStats() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/channel/stats`, { headers: { ...authHeader } });
+  if (!res.ok) throw new Error('Failed to fetch channel stats');
+  return res.json();
+}
+
+export async function getChannelSnapshots() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/channel/snapshots`, { headers: { ...authHeader } });
+  if (!res.ok) throw new Error('Failed to fetch channel snapshots');
+  return res.json();
+}
+
 export async function saveChannelProfile(data) {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/channel`, {
@@ -145,6 +159,20 @@ export async function saveChannelProfile(data) {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to save channel profile');
+  return res.json();
+}
+
+export async function importChannelFromUrl(channelUrl) {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/channel/import-from-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ channelUrl }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to import channel');
+  }
   return res.json();
 }
 

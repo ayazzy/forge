@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { getEpisodes, getCachedTrends } from '../lib/api';
+import { getEpisodes, getCachedTrends, getChannelStats } from '../lib/api';
 import { useChannelProfile } from '../hooks/useChannelProfile';
 import AppLayout from '../components/ui/AppLayout';
 
@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [trendingTopics, setTrendingTopics] = useState([]);
   const [loadingTrends, setLoadingTrends] = useState(true);
+  const [channelStats, setChannelStats] = useState(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(subscriptionSuccess);
 
   useEffect(() => {
@@ -54,6 +55,10 @@ export default function Dashboard() {
       .then(data => setTrendingTopics((data.topics || []).slice(0, 4)))
       .catch(console.error)
       .finally(() => setLoadingTrends(false));
+  }, []);
+
+  useEffect(() => {
+    getChannelStats().then(setChannelStats).catch(() => {});
   }, []);
 
   const thisMonth = new Date().toISOString().slice(0, 7);
@@ -175,6 +180,25 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        {/* Channel stats */}
+        {channelStats && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '10px', color: '#333', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>YouTube Channel</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              {[
+                { value: channelStats.subscribers.toLocaleString(), label: 'Subscribers' },
+                { value: channelStats.total_views.toLocaleString(), label: 'Total Views' },
+                { value: channelStats.video_count.toLocaleString(), label: 'Videos Published' },
+              ].map(s => (
+                <div key={s.label} style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '10px', padding: '16px 18px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{s.value}</div>
+                  <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Main grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>

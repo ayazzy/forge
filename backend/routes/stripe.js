@@ -28,7 +28,7 @@ async function getOrCreateCustomer(userId, email) {
   const { data: profile } = await supabase
     .from('profiles')
     .select('stripe_customer_id')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .single();
 
   if (profile?.stripe_customer_id) return profile.stripe_customer_id;
@@ -40,7 +40,8 @@ async function getOrCreateCustomer(userId, email) {
 
   await supabase
     .from('profiles')
-    .upsert({ user_id: userId, stripe_customer_id: customer.id }, { onConflict: 'user_id' });
+    .update({ stripe_customer_id: customer.id })
+    .eq('id', userId);
 
   return customer.id;
 }
@@ -53,7 +54,7 @@ router.get('/billing', async (req, res) => {
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id, plan, subscription_status, trial_ends_at, monthly_episodes_used, monthly_reset_at, episode_credits')
-      .eq('user_id', req.user.id)
+      .eq('id', req.user.id)
       .single();
 
     const plan = profile?.plan || 'free';
@@ -71,7 +72,7 @@ router.get('/billing', async (req, res) => {
       await supabase.from('profiles').update({
         monthly_episodes_used: 0,
         monthly_reset_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      }).eq('user_id', req.user.id);
+      }).eq('id', req.user.id);
     }
 
     const monthlyRemaining = Math.max(0, monthlyLimit - monthlyUsed);
@@ -154,7 +155,7 @@ router.post('/create-portal-session', async (req, res) => {
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id')
-      .eq('user_id', req.user.id)
+      .eq('id', req.user.id)
       .single();
 
     if (!profile?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found' });
@@ -197,13 +198,12 @@ export async function handleWebhook(req, res) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('episode_credits')
-              .eq('user_id', userId)
+              .eq('id', userId)
               .single();
             const current = profile?.episode_credits || 0;
-            await supabase.from('profiles').upsert({
-              user_id: userId,
+            await supabase.from('profiles').update({
               episode_credits: current + episodes,
-            }, { onConflict: 'user_id' });
+            }).eq('id', userId);
           }
           break;
         }
@@ -214,15 +214,14 @@ export async function handleWebhook(req, res) {
           const userId = sub.metadata?.supabase_user_id;
           const plan = sub.metadata?.plan || 'creator';
           if (userId) {
-            await supabase.from('profiles').upsert({
-              user_id: userId,
+            await supabase.from('profiles').update({
               stripe_customer_id: session.customer,
               plan,
               subscription_status: sub.status,
               trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
               monthly_episodes_used: 0,
               monthly_reset_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            }, { onConflict: 'user_id' });
+            }).eq('id', userId);
           }
         }
         break;
@@ -233,12 +232,11 @@ export async function handleWebhook(req, res) {
         const userId = sub.metadata?.supabase_user_id;
         const plan = sub.metadata?.plan || 'creator';
         if (userId) {
-          await supabase.from('profiles').upsert({
-            user_id: userId,
+          await supabase.from('profiles').update({
             plan: sub.status === 'canceled' ? 'free' : plan,
             subscription_status: sub.status,
             trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
-          }, { onConflict: 'user_id' });
+          }).eq('id', userId);
         }
         break;
       }
@@ -247,12 +245,11 @@ export async function handleWebhook(req, res) {
         const sub = event.data.object;
         const userId = sub.metadata?.supabase_user_id;
         if (userId) {
-          await supabase.from('profiles').upsert({
-            user_id: userId,
+          await supabase.from('profiles').update({
             plan: 'free',
             subscription_status: 'canceled',
             trial_ends_at: null,
-          }, { onConflict: 'user_id' });
+          }).eq('id', userId);
         }
         break;
       }

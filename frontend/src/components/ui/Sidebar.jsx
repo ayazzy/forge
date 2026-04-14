@@ -10,7 +10,11 @@ const ACCENT = '#e03535';
 const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: '⬡' },
   { label: 'Pipeline', href: '/pipeline', icon: '◈' },
+  { label: 'Episodes', href: '/episodes', icon: '▤' },
   { label: 'Trends', href: '/trends', icon: '↗' },
+  { label: 'Saved Topics', href: '/saved-topics', icon: '🔖' },
+  { label: 'Stats', href: '/stats', icon: '↯' },
+  { label: 'Calendar', href: '/calendar', icon: '▦' },
   { label: 'Settings', href: '/settings', icon: '◎' },
 ];
 
