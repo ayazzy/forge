@@ -211,8 +211,19 @@ export async function handleWebhook(req, res) {
         // Subscription checkout completed
         if (session.mode === 'subscription') {
           const sub = await stripe.subscriptions.retrieve(session.subscription);
-          const userId = sub.metadata?.supabase_user_id;
+          let userId = sub.metadata?.supabase_user_id;
           const plan = sub.metadata?.plan || 'creator';
+
+          // Fallback: look up profile by stripe_customer_id
+          if (!userId) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('stripe_customer_id', session.customer)
+              .single();
+            userId = profile?.id;
+          }
+
           if (userId) {
             await supabase.from('profiles').update({
               stripe_customer_id: session.customer,
@@ -229,8 +240,12 @@ export async function handleWebhook(req, res) {
 
       case 'customer.subscription.updated': {
         const sub = event.data.object;
-        const userId = sub.metadata?.supabase_user_id;
+        let userId = sub.metadata?.supabase_user_id;
         const plan = sub.metadata?.plan || 'creator';
+        if (!userId) {
+          const { data: profile } = await supabase.from('profiles').select('id').eq('stripe_customer_id', sub.customer).single();
+          userId = profile?.id;
+        }
         if (userId) {
           await supabase.from('profiles').update({
             plan: sub.status === 'canceled' ? 'free' : plan,
@@ -243,7 +258,11 @@ export async function handleWebhook(req, res) {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
-        const userId = sub.metadata?.supabase_user_id;
+        let userId = sub.metadata?.supabase_user_id;
+        if (!userId) {
+          const { data: profile } = await supabase.from('profiles').select('id').eq('stripe_customer_id', sub.customer).single();
+          userId = profile?.id;
+        }
         if (userId) {
           await supabase.from('profiles').update({
             plan: 'free',
