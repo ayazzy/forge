@@ -214,7 +214,7 @@ export async function handleWebhook(req, res) {
           let userId = sub.metadata?.supabase_user_id;
           const plan = sub.metadata?.plan || 'creator';
 
-          // Fallback: look up profile by stripe_customer_id
+          // Fallback 1: look up profile by stripe_customer_id
           if (!userId) {
             const { data: profile } = await supabase
               .from('profiles')
@@ -222,6 +222,13 @@ export async function handleWebhook(req, res) {
               .eq('stripe_customer_id', session.customer)
               .single();
             userId = profile?.id;
+          }
+
+          // Fallback 2: look up user by email
+          if (!userId && session.customer_details?.email) {
+            const { data: { users } } = await supabase.auth.admin.listUsers();
+            const match = users?.find(u => u.email === session.customer_details.email);
+            userId = match?.id;
           }
 
           if (userId) {
@@ -246,6 +253,14 @@ export async function handleWebhook(req, res) {
           const { data: profile } = await supabase.from('profiles').select('id').eq('stripe_customer_id', sub.customer).single();
           userId = profile?.id;
         }
+        if (!userId) {
+          const customer = await stripe.customers.retrieve(sub.customer);
+          if (customer.email) {
+            const { data: { users } } = await supabase.auth.admin.listUsers();
+            const match = users?.find(u => u.email === customer.email);
+            userId = match?.id;
+          }
+        }
         if (userId) {
           await supabase.from('profiles').update({
             plan: sub.status === 'canceled' ? 'free' : plan,
@@ -262,6 +277,14 @@ export async function handleWebhook(req, res) {
         if (!userId) {
           const { data: profile } = await supabase.from('profiles').select('id').eq('stripe_customer_id', sub.customer).single();
           userId = profile?.id;
+        }
+        if (!userId) {
+          const customer = await stripe.customers.retrieve(sub.customer);
+          if (customer.email) {
+            const { data: { users } } = await supabase.auth.admin.listUsers();
+            const match = users?.find(u => u.email === customer.email);
+            userId = match?.id;
+          }
         }
         if (userId) {
           await supabase.from('profiles').update({
