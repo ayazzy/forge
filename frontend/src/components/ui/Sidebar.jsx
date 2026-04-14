@@ -18,7 +18,7 @@ const NAV = [
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { channelProfile, usage, hasPlan, planLabel } = useAppData();
+  const { channelProfile, billing, usage, hasPlan, planLabel } = useAppData();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -102,6 +102,42 @@ export default function Sidebar() {
         )}
       </div>
 
+      {/* Episode usage indicator — only for plan holders */}
+      {hasPlan && billing && (
+        <div style={{ padding: '0 20px 14px' }}>
+          {(() => {
+            const used = billing.monthly_used ?? 0;
+            const limit = billing.monthly_limit ?? 0;
+            const purchased = billing.purchased_credits ?? 0;
+            const remaining = billing.monthly_remaining ?? 0;
+            const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+            const barColor = pct > 90 ? '#e03535' : pct > 70 ? '#d97706' : '#444';
+            const outOfEpisodes = remaining === 0 && purchased === 0;
+            return (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '10px', color: '#666' }}>Episodes</span>
+                  <span style={{ fontSize: '10px', color: outOfEpisodes ? '#e03535' : '#555', fontWeight: outOfEpisodes ? '600' : '400' }}>
+                    {used} / {limit}
+                  </span>
+                </div>
+                <div style={{ height: '3px', background: '#252525', borderRadius: '2px', marginBottom: '5px' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                </div>
+                {purchased > 0 && (
+                  <div style={{ fontSize: '10px', color: '#555' }}>+ {purchased} purchased</div>
+                )}
+                {outOfEpisodes && (
+                  <Link to="/pricing" style={{ fontSize: '10px', color: '#e03535', textDecoration: 'none', display: 'block', marginTop: '2px' }}>
+                    Buy more →
+                  </Link>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Bottom — channel avatar + sign out */}
       <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
@@ -161,7 +197,7 @@ export default function Sidebar() {
                 </div>
               );
             })}
-            <Link to="/settings" style={{ fontSize: '10px', color: '#555', textDecoration: 'none', marginTop: '4px', display: 'block' }}>
+            <Link to="/settings#plan-usage" style={{ fontSize: '10px', color: '#555', textDecoration: 'none', marginTop: '4px', display: 'block' }}>
               View usage →
             </Link>
           </div>

@@ -22,6 +22,7 @@ export default function Trends() {
   const [error, setError] = useState(null);
   const [savedTopics, setSavedTopics] = useState([]);
   const [savingTopic, setSavingTopic] = useState(null);
+  const [saveError, setSaveError] = useState(null);
 
   useEffect(() => {
     loadTopics();
@@ -81,10 +82,20 @@ export default function Trends() {
 
   const isSaved = (topic) => savedTopics.some(t => t.topic === topic);
 
+  // Ensures topics from refreshTrends have the same shape as cached topics
+  const normalizeTopic = (t) => ({
+    ...t,
+    competitionColor: t.competitionColor || (t.competitionLevel === 'Low' ? '#4ade80' : t.competitionLevel === 'Medium' ? '#d97706' : '#e03535'),
+    whyItWorks: t.whyItWorks || t.why || t.why_it_works || '',
+  });
+
   const handleToggleSave = async (result) => {
+    console.log('[Trends] handleToggleSave called, topic:', result.topic, 'savingTopic:', savingTopic);
     setSavingTopic(result.topic);
+    setSaveError(null);
     try {
       const existing = savedTopics.find(t => t.topic === result.topic);
+      console.log('[Trends] existing saved?', existing ? 'yes, id=' + existing.id : 'no');
       if (existing) {
         await deleteSavedTopic(existing.id);
         setSavedTopics(prev => prev.filter(t => t.id !== existing.id));
@@ -100,7 +111,8 @@ export default function Trends() {
         setSavedTopics(prev => [saved, ...prev]);
       }
     } catch (e) {
-      console.error('Failed to toggle save:', e);
+      console.error('[Trends] Failed to toggle save:', e);
+      setSaveError(e.message || 'Failed to save topic. Check console for details.');
     } finally {
       setSavingTopic(null);
     }
@@ -170,6 +182,13 @@ export default function Trends() {
         )}
 
         {/* Browse mode */}
+        {saveError && (
+          <div style={{ background: '#1a0a0a', border: '1px solid #3a1515', borderRadius: '8px', padding: '10px 16px', color: '#e03535', fontSize: '13px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ flex: 1 }}>⚠ {saveError}</span>
+            <button onClick={() => setSaveError(null)} style={{ background: 'none', border: 'none', color: '#e03535', cursor: 'pointer', fontSize: '16px', padding: 0, fontFamily: 'inherit', opacity: 0.7 }}>×</button>
+          </div>
+        )}
+
         {mode === 'browse' && (
           <>
             {(loading || refreshing) && (

@@ -1,6 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { sendCancellationEmail } from '../lib/email.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -128,7 +129,10 @@ router.post('/create-pack-checkout-session', async (req, res) => {
   try {
     const { pack } = req.body;
     const packConfig = PACKS[pack];
-    if (!packConfig?.priceId) return res.status(400).json({ error: 'Invalid pack' });
+    if (!packConfig?.priceId) {
+      console.error(`[pack checkout] Invalid pack or missing priceId. pack="${pack}" PACKS keys=${Object.keys(PACKS).join(',')} priceIds=${JSON.stringify(Object.fromEntries(Object.entries(PACKS).map(([k,v]) => [k, v.priceId || 'MISSING'])))}`);
+      return res.status(400).json({ error: 'Invalid pack' });
+    }
 
     const customerId = await getOrCreateCustomer(req.user.id, req.user.email);
 
@@ -297,6 +301,14 @@ export async function handleWebhook(req, res) {
             subscription_status: 'canceled',
             trial_ends_at: null,
           }).eq('id', userId);
+
+          // Send cancellation email (fire and forget)
+          try {
+            const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+            if (authUser?.email) sendCancellationEmail(authUser.email).catch(() => {});
+          } catch (emailErr) {
+            console.error('[webhook] Failed to fetch user email for cancellation email:', emailErr.message);
+          }
         }
         break;
       }

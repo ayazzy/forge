@@ -15,6 +15,7 @@ import claudeGuestRoute from './routes/claudeGuest.js';
 import claudeStreamRoute from './routes/claudeStream.js';
 import stripeRoute, { handleWebhook } from './routes/stripe.js';
 import { requireAuth } from './middleware/auth.js';
+import { runJob as runTrialReminder } from './jobs/trialReminder.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -60,3 +61,6 @@ app.use('/api/stripe', requireAuth, stripeRoute);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Forge API running on port ${PORT}`));
+
+// Trial reminder job — runs every 6 hours
+setInterval(runTrialReminder, 6 * 60 * 60 * 1000);

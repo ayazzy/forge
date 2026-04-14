@@ -1,5 +1,6 @@
 import express from 'express';
 import { supabase } from '../lib/supabase.js';
+import { sendWelcomeEmail } from '../lib/email.js';
 const router = express.Router();
 
 // Get channel profile
@@ -263,6 +264,9 @@ Generate exactly 5-6 moods that are specific and relevant to this channel's cont
       .single();
 
     if (error) throw error;
+
+    // Send welcome email on first-time onboarding completion (fire and forget)
+    if (req.user?.email) sendWelcomeEmail(req.user.email).catch(() => {});
 
     // Fire and forget — generate trending topics in the background
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';

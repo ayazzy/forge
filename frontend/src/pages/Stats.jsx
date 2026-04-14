@@ -152,7 +152,7 @@ export default function Stats() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                       <XAxis dataKey="date" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} width={36} />
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'transparent', fill: 'transparent' }} />
                       <Line type="monotone" dataKey="subscribers" name="Subscribers" stroke={ACCENT} strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -163,7 +163,7 @@ export default function Stats() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                       <XAxis dataKey="date" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} width={36} />
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'transparent', fill: 'transparent' }} />
                       <Line type="monotone" dataKey="total_views" name="Views" stroke="#3b82f6" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -200,8 +200,8 @@ export default function Stats() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                 <XAxis dataKey="week" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} width={24} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="episodes" name="Episodes" fill={ACCENT} radius={[3, 3, 0, 0]} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                <Bar dataKey="episodes" name="Episodes" fill={ACCENT} radius={[3, 3, 0, 0]} cursor={false} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -212,8 +212,8 @@ export default function Stats() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                 <XAxis type="number" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} width={64} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="completed" name="Completed" fill="#3b82f6" radius={[0, 3, 3, 0]} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                <Bar dataKey="completed" name="Completed" fill="#3b82f6" radius={[0, 3, 3, 0]} cursor={false} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -226,7 +226,7 @@ export default function Stats() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                 <XAxis dataKey="date" tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#555', fontSize: 10 }} axisLine={false} tickLine={false} width={48} tickFormatter={v => fmt(v)} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'transparent', fill: 'transparent' }} />
                 <Line type="monotone" dataKey="words" name="Words" stroke="#a855f7" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>

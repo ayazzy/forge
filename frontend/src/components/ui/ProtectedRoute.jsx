@@ -73,7 +73,15 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
 
   if (requiresPlan) {
     const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
-if (!isActive) return <Navigate to="/pricing" replace />;
+    if (!isActive) {
+      let reason = 'no_plan';
+      if (billing?.subscription_status === 'canceled') {
+        reason = 'canceled';
+      } else if (billing?.subscription_status === 'trialing' && billing?.trial_ends_at && new Date(billing.trial_ends_at) < new Date()) {
+        reason = 'trial_ended';
+      }
+      return <Navigate to={`/pricing?reason=${reason}`} replace />;
+    }
   }
 
   return children;

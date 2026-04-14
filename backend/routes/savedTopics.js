@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
     .select('*')
     .eq('user_id', req.user.id)
     .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) { console.error('[savedTopics GET]', error.message); return res.status(500).json({ error: error.message }); }
   res.json(data || []);
 });
 
@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
     .insert({ user_id: req.user.id, topic, angle, competition_level, competition_color, why_it_works, evidence_ratio })
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) { console.error('[savedTopics POST]', error.message); return res.status(500).json({ error: error.message }); }
   res.json(data);
 });
 

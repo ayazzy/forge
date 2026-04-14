@@ -289,7 +289,10 @@ export async function validateTopic(topic, channelDescription) {
 export async function getSavedTopics() {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/saved-topics`, { headers: { ...authHeader } });
-  if (!res.ok) throw new Error('Failed to fetch saved topics');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to fetch saved topics');
+  }
   return res.json();
 }
 
@@ -300,7 +303,10 @@ export async function saveTopic(topic) {
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(topic),
   });
-  if (!res.ok) throw new Error('Failed to save topic');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to save topic');
+  }
   return res.json();
 }
 
@@ -310,7 +316,10 @@ export async function deleteSavedTopic(id) {
     method: 'DELETE',
     headers: { ...authHeader },
   });
-  if (!res.ok) throw new Error('Failed to delete saved topic');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to delete saved topic');
+  }
   return res.json();
 }
 

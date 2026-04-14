@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { createCheckoutSession } from "../lib/api";
+import { createCheckoutSession, createPackCheckoutSession, getBilling } from "../lib/api";
 import AppLayout from "../components/ui/AppLayout";
 
 const ACCENT = "#e03535";
@@ -40,11 +40,49 @@ const plans = [
 ];
 
 
+const packs = [
+  { id: "pack_1", episodes: 1, price: "$9",  label: "1 Episode",  desc: "A single top-up credit." },
+  { id: "pack_3", episodes: 3, price: "$24", label: "3 Episodes", desc: "Best for occasional overages." },
+  { id: "pack_5", episodes: 5, price: "$35", label: "5 Episodes", desc: "Best value per episode." },
+];
+
+const REASON_MESSAGES = {
+  canceled: "Your subscription has ended. Resubscribe below to continue making videos.",
+  trial_ended: "Your 7-day trial has ended. Choose a plan to keep access to Forge.",
+  no_plan: "You need an active plan to use Forge. Get started below.",
+};
+
 export default function Pricing() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(null);
+  const [packLoading, setPackLoading] = useState(null);
+  const [packError, setPackError] = useState(null);
+  const [billing, setBilling] = useState(null);
+  const reason = searchParams.get("reason");
+  const [reasonBannerDismissed, setReasonBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    if (user) getBilling().then(setBilling).catch(() => {});
+  }, [user]);
+
+  // Packs are only available to users with an active subscription
+  const hasActivePlan = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
+
+  const handlePackCTA = async (packId) => {
+    if (!user) { navigate("/signup"); return; }
+    setPackLoading(packId);
+    setPackError(null);
+    try {
+      const { url } = await createPackCheckoutSession(packId);
+      window.location.href = url;
+    } catch (e) {
+      setPackError(e.message);
+      setPackLoading(null);
+    }
+  };
 
   const handlePlanCTA = async (planId) => {
     if (!user) { navigate("/signup"); return; }
@@ -64,6 +102,13 @@ export default function Pricing() {
       <div style={{ padding: "32px 40px", maxWidth: "960px", margin: "0 auto", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Pricing</div>
         <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "32px" }}>7-day free trial on all plans. No credit card required to start.</div>
+
+        {reason && REASON_MESSAGES[reason] && !reasonBannerDismissed && (
+          <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: "#e03535", marginBottom: "20px", maxWidth: "860px", display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ flex: 1 }}>{REASON_MESSAGES[reason]}</span>
+            <button onClick={() => setReasonBannerDismissed(true)} style={{ background: "none", border: "none", color: "#e03535", cursor: "pointer", fontSize: "16px", padding: "0", fontFamily: "inherit", flexShrink: 0, opacity: 0.7 }}>×</button>
+          </div>
+        )}
 
         {error && (
           <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "6px", padding: "10px 14px", fontSize: "12px", color: ACCENT, marginBottom: "16px", maxWidth: "860px" }}>
@@ -115,7 +160,51 @@ export default function Pricing() {
           ))}
         </div>
 
-        <div style={{ marginTop: "8px", fontSize: "13px", color: "#777", maxWidth: "860px" }}>
+        {/* Episode Packs — only shown to users with an active subscription */}
+        {hasActivePlan && <div style={{ maxWidth: "860px", marginTop: "40px" }}>
+          <div style={{ fontSize: "16px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Episode Packs</div>
+          <div style={{ fontSize: "13px", color: "#aaa", marginBottom: "20px" }}>One-time credits — never expire. Stacks with your monthly allowance.</div>
+
+          {packError && (
+            <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "6px", padding: "10px 14px", fontSize: "12px", color: ACCENT, marginBottom: "14px" }}>
+              {packError}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+            {packs.map(pk => (
+              <div
+                key={pk.id}
+                style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "20px 20px", display: "flex", flexDirection: "column", gap: "12px" }}
+              >
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>{pk.label}</div>
+                  <div style={{ fontSize: "11px", color: "#666" }}>{pk.desc}</div>
+                </div>
+                <div style={{ fontSize: "24px", fontWeight: "700", color: "#fff" }}>{pk.price}</div>
+                <button
+                  onClick={() => handlePackCTA(pk.id)}
+                  disabled={!!packLoading}
+                  style={{
+                    background: packLoading === pk.id ? "#2a2a2a" : "#222",
+                    color: packLoading === pk.id ? "#555" : "#fff",
+                    border: "1px solid #333",
+                    borderRadius: "8px",
+                    padding: "10px 0",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: packLoading ? "not-allowed" : "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {packLoading === pk.id ? "Redirecting..." : `Buy ${pk.label} →`}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        <div style={{ marginTop: "24px", fontSize: "13px", color: "#777", maxWidth: "860px" }}>
           Trial ends after 7 days. Cancel anytime from Settings before being charged.
         </div>
       </div>

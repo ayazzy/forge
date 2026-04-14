@@ -86,6 +86,7 @@ export default function Pipeline() {
   useEffect(() => {
     if (!user) return;
     loadEpisodes();
+    getBilling().then(setBilling).catch(() => {});
   }, [user]);
 
   useEffect(() => {
@@ -373,9 +374,6 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         height: '52px',
         gap: '16px',
       }}>
-        <div style={{ fontSize: '11px', color: '#555', letterSpacing: '0.5px' }}>
-          {currentEpisodeId ? (stageData[0]?.topic || 'Production Pipeline') : 'Production Pipeline'}
-        </div>
         <div style={{ flex: 1 }} />
         <button
           onClick={() => setShowLibrary(true)}
@@ -383,20 +381,51 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         >
           Library
         </button>
-        <button
-          onClick={handleOneShotOpen}
-          style={{ background: 'rgba(224,53,53,0.08)', border: '1px solid rgba(224,53,53,0.3)', color: ACCENT, padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 4px 20px rgba(224,53,53,0.15)' }}
-        >
-          ⚡ One Shot
-        </button>
-        {!showResetConfirm && (
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            style={{ background: ACCENT, border: 'none', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            + New Episode
-          </button>
-        )}
+        {(() => {
+          const totalRemaining = billing?.total_remaining ?? null;
+          const isCreator = billing?.plan === 'creator';
+          const noEpisodes = totalRemaining !== null && totalRemaining === 0;
+          const oneLast = totalRemaining === 1;
+          const oneShotDisabled = noEpisodes && isCreator;
+          return (
+            <>
+              <button
+                onClick={handleOneShotOpen}
+                disabled={oneShotDisabled}
+                style={{ background: 'rgba(224,53,53,0.08)', border: '1px solid rgba(224,53,53,0.3)', color: oneShotDisabled ? '#555' : ACCENT, padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: oneShotDisabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 4px 20px rgba(224,53,53,0.15)', opacity: oneShotDisabled ? 0.5 : 1 }}
+              >
+                ⚡ One Shot
+              </button>
+              {noEpisodes ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#e03535' }}>No episodes remaining —</span>
+                  <Link to="/pricing" style={{ fontSize: '11px', color: ACCENT, fontWeight: '700', textDecoration: 'none' }}>Buy more or upgrade</Link>
+                </div>
+              ) : oneLast ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', background: 'rgba(217,119,6,0.15)', color: '#d97706', padding: '4px 10px', borderRadius: '6px', fontWeight: '600' }}>1 episode remaining</span>
+                  {!showResetConfirm && (
+                    <button
+                      onClick={() => setShowResetConfirm(true)}
+                      style={{ background: ACCENT, border: 'none', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      + New Episode
+                    </button>
+                  )}
+                </div>
+              ) : (
+                !showResetConfirm && (
+                  <button
+                    onClick={() => setShowResetConfirm(true)}
+                    style={{ background: ACCENT, border: 'none', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    + New Episode
+                  </button>
+                )
+              )}
+            </>
+          );
+        })()}
         {showResetConfirm && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', color: '#555' }}>Clear all progress?</span>
