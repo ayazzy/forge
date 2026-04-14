@@ -1,27 +1,39 @@
 import { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getBilling } from '../../lib/api';
+import { getBilling, getChannelProfile } from '../../lib/api';
 
 // Module-level cache so billing isn't re-fetched on every route change
 let _billingCache = null;
 let _billingCacheAt = 0;
-const CACHE_TTL = 60_000;
+const BILLING_CACHE_TTL = 60_000;
+
+// Module-level cache for channel profile check (2.4 — onboarding redirect)
+let _profileHasChannel = null; // null = unchecked, true = has profile, false = missing
 
 export function invalidateBillingCache() {
   _billingCache = null;
   _billingCacheAt = 0;
 }
 
+export function invalidateProfileCache() {
+  _profileHasChannel = null;
+}
+
 export default function ProtectedRoute({ children, requiresPlan = false }) {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
-  // Always start loading when requiresPlan — never render children before billing is confirmed
   const [billing, setBilling] = useState(null);
   const [billingLoading, setBillingLoading] = useState(requiresPlan);
   const [activating, setActivating] = useState(false);
+  const [profileChecked, setProfileChecked] = useState(_profileHasChannel !== null);
+  const [hasProfile, setHasProfile] = useState(_profileHasChannel);
 
   const isStripeReturn = new URLSearchParams(location.search).get('subscription') === 'success';
+
+  // Paths that should NOT redirect to onboarding even if profile is missing
+  const onboardingExemptPaths = ['/onboarding', '/settings'];
+  const isOnboardingExempt = onboardingExemptPaths.some(p => location.pathname.startsWith(p));
 
   const fetchBilling = () =>
     getBilling()
@@ -33,22 +45,17 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
       setBillingLoading(false);
       return;
     }
-    if (!user) {
-      // Keep billingLoading = true while auth is still resolving — don't let a null
-      // user short-circuit the billing check and cause a premature /pricing redirect.
-      return;
-    }
-    // Use fresh cache synchronously to avoid a flicker
-    if (_billingCache && Date.now() - _billingCacheAt < CACHE_TTL) {
+    if (!user) return;
+
+    // Use fresh cache synchronously to avoid flicker
+    if (_billingCache && Date.now() - _billingCacheAt < BILLING_CACHE_TTL) {
       setBilling(_billingCache);
       setBillingLoading(false);
       return;
     }
-    // Fetch fresh billing
     fetchBilling().then(data => {
       const isActive = data?.subscription_status === 'active' || data?.subscription_status === 'trialing';
       if (!isActive && isStripeReturn) {
-        // Stripe webhook may not have fired yet — retry once after 4 seconds
         setActivating(true);
         setTimeout(() => {
           fetchBilling().finally(() => { setActivating(false); setBillingLoading(false); });
@@ -59,7 +66,33 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
     });
   }, [user, requiresPlan]);
 
-  if (authLoading || billingLoading || activating) {
+  // 2.4 — Check channel profile once per session to redirect new users to onboarding
+  useEffect(() => {
+    if (!requiresPlan || !user || isOnboardingExempt) {
+      if (!profileChecked) setProfileChecked(true);
+      return;
+    }
+    if (_profileHasChannel !== null) {
+      setHasProfile(_profileHasChannel);
+      setProfileChecked(true);
+      return;
+    }
+    getChannelProfile()
+      .then(data => {
+        const exists = !!(data?.channel_name);
+        _profileHasChannel = exists;
+        setHasProfile(exists);
+        setProfileChecked(true);
+      })
+      .catch(() => {
+        // On error, don't block — assume profile exists to avoid redirect loop
+        _profileHasChannel = true;
+        setHasProfile(true);
+        setProfileChecked(true);
+      });
+  }, [user, requiresPlan, isOnboardingExempt]);
+
+  if (authLoading || billingLoading || activating || (requiresPlan && !isOnboardingExempt && !profileChecked)) {
     return (
       <div style={{ minHeight: '100vh', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
         <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #333', borderTopColor: '#e03535', animation: 'spin 0.7s linear infinite' }} />
@@ -81,6 +114,11 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
         reason = 'trial_ended';
       }
       return <Navigate to={`/pricing?reason=${reason}`} replace />;
+    }
+
+    // 2.4 — Redirect to onboarding if no channel profile (and not on exempt paths)
+    if (!isOnboardingExempt && hasProfile === false) {
+      return <Navigate to="/onboarding" replace />;
     }
   }
 

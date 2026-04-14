@@ -168,6 +168,25 @@ export default function Sidebar() {
                 <Link to="/pricing" style={{ fontSize: '10px', color: ACCENT, textDecoration: 'none', fontWeight: '600' }}>Upgrade →</Link>
               )}
             </div>
+            {/* 2.6 — Trial expiration warning */}
+            {(() => {
+              const status = billing?.subscription_status;
+              const trialEnd = billing?.trial_ends_at;
+              if (status !== 'trialing' || !trialEnd) return null;
+              const daysLeft = Math.max(0, Math.ceil((new Date(trialEnd) - new Date()) / (1000 * 60 * 60 * 24)));
+              if (daysLeft > 3) return null;
+              const isUrgent = daysLeft <= 1;
+              const bg = isUrgent ? 'rgba(224,53,53,0.15)' : 'rgba(217,119,6,0.15)';
+              const color = isUrgent ? '#e03535' : '#d97706';
+              const text = daysLeft === 0 ? 'Trial ends today' : `Trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+              return (
+                <Link to="/pricing" style={{ textDecoration: 'none' }}>
+                  <div style={{ marginTop: '4px', background: bg, borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color, fontWeight: '600' }}>
+                    ⚠ {text}
+                  </div>
+                </Link>
+              );
+            })()}
           </div>
         </div>
         {/* Mini usage meters */}

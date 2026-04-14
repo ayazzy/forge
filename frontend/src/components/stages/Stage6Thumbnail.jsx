@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { claude } from "../../lib/api";
 import { S, COLORS, APPROACH_COLORS } from "../../styles/theme";
+import { extractJSON } from "../../lib/parseJSON";
 
 function Stage5({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const research = data.research;
@@ -25,7 +26,8 @@ Key emotional moment: ${form.moment}
 Period: ${form.period}
 Return ONLY valid JSON:
 {"concepts":[{"approach":"Image-led","headline":"Max 5 words","subtext":"Max 3 words or null","imagePrompt":"Midjourney prompt","typography":"font description","colorPalette":{"bg":"hex","textPrimary":"hex","textAccent":"hex"},"notes":"1 sentence on why this works"}]}`);
-    try { setConcepts(JSON.parse(raw.replace(/```json|```/g, "").trim()).concepts); } catch (e) {}
+    const parsed = extractJSON(raw);
+    setConcepts(parsed?.concepts || null);
     setLoading(false);
   };
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { getEpisodes, getCachedTrends, getChannelStats } from '../lib/api';
+import { getEpisodes, getCachedTrends, getChannelStats, deleteEpisode } from '../lib/api';
 import { useChannelProfile } from '../hooks/useChannelProfile';
 import AppLayout from '../components/ui/AppLayout';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const ACCENT = '#e03535';
 const STAGE_NAMES = ['Research', 'Story', 'Narration', 'Sound', 'Visuals', 'Assembly', 'Thumbnail', 'Metadata'];
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const [loadingTrends, setLoadingTrends] = useState(true);
   const [channelStats, setChannelStats] = useState(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(subscriptionSuccess);
+  const [deleteModal, setDeleteModal] = useState(null); // episodeId to delete
 
   useEffect(() => {
     if (!profileLoading && !hasProfile) navigate('/onboarding', { replace: true });
@@ -86,6 +88,11 @@ export default function Dashboard() {
     padding: '20px',
   };
 
+  const handleDeleteEpisode = async (id) => {
+    await deleteEpisode(id).catch(console.error);
+    setEpisodes(prev => prev.filter(ep => ep.id !== id));
+  };
+
   if (loading || profileLoading) return (
     <AppLayout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
@@ -96,6 +103,15 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
+      <ConfirmModal
+        isOpen={!!deleteModal}
+        onClose={() => setDeleteModal(null)}
+        onConfirm={() => handleDeleteEpisode(deleteModal)}
+        title="Delete this episode?"
+        description="This will permanently delete the episode and all its stage data. This can't be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
       {showSuccessBanner && (
         <div style={{ background: '#0a2a1a', borderBottom: '1px solid #14532d', padding: '12px 40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '13px', color: '#4ade80', flex: 1 }}>
@@ -220,42 +236,79 @@ export default function Dashboard() {
                 </Link>
               </div>
             ) : (
-              episodes.slice(0, 6).map((ep, i) => (
-                <div key={ep.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 8px',
-                    borderBottom: i < Math.min(episodes.length, 6) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                    borderRadius: '6px',
-                    transition: 'background 0.15s ease, transform 0.1s ease',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#1e1e1e'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '13px', color: '#fff', fontWeight: '500', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ep.title || 'Untitled'}
+              episodes.slice(0, 6).map((ep, i) => {
+                const completed = ep.completed_stages || [];
+                const totalStages = 8;
+                return (
+                  <div key={ep.id}
+                    style={{
+                      padding: '10px 8px',
+                      borderBottom: i < Math.min(episodes.length, 6) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      borderRadius: '6px',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#1e1e1e'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '500', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {ep.title || 'Untitled'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#666' }}>
+                          {new Date(ep.created_at).toLocaleDateString()}
+                          {ep.stage_data?.[1]?.analysis?.wordCount
+                            ? ` · ${ep.stage_data[1].analysis.wordCount.toLocaleString()} words`
+                            : ''}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <div style={{
+                          fontSize: '9px', fontWeight: '700', letterSpacing: '0.5px',
+                          padding: '3px 8px', borderRadius: '20px',
+                          background: ep.status === 'complete' ? '#0a2a1a' : '#1e1e1e',
+                          color: ep.status === 'complete' ? '#4ade80' : '#888',
+                          border: `1px solid ${ep.status === 'complete' ? '#14532d' : '#2a2a2a'}`,
+                          textTransform: 'uppercase',
+                        }}>
+                          {ep.status}
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteModal(ep.id); }}
+                          style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '14px', padding: '2px 4px', lineHeight: '1', fontFamily: 'inherit' }}
+                          title="Delete episode"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#777' }}>
-                      {new Date(ep.created_at).toLocaleDateString()} · Stage {ep.active_stage}/8
-                      {ep.stage_data?.[1]?.analysis?.wordCount
-                        ? ` · ${ep.stage_data[1].analysis.wordCount.toLocaleString()} words`
-                        : ''}
-                    </div>
+                    {/* 3.6 — Stage progress indicator */}
+                    {ep.status === 'complete' ? (
+                      <div style={{ fontSize: '11px', color: '#4ade80', fontWeight: '600' }}>✓ Complete</div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '3px' }}>
+                          {Array.from({ length: totalStages }, (_, s) => (
+                            <div
+                              key={s}
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                background: completed.includes(s) ? ACCENT : '#2a2a2a',
+                                flexShrink: 0,
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <span style={{ fontSize: '10px', color: '#555' }}>
+                          {completed.length} of {totalStages}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div style={{
-                    fontSize: '9px', fontWeight: '700', letterSpacing: '0.5px',
-                    padding: '3px 8px', borderRadius: '20px', marginLeft: '10px',
-                    background: ep.status === 'complete' ? '#0a2a1a' : '#1e1e1e',
-                    color: ep.status === 'complete' ? '#4ade80' : '#888',
-                    border: `1px solid ${ep.status === 'complete' ? '#14532d' : '#2a2a2a'}`,
-                    textTransform: 'uppercase', flexShrink: 0,
-                  }}>
-                    {ep.status}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

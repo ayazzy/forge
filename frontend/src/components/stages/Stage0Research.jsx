@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { claude } from "../../lib/api";
 import { S, COLORS } from "../../styles/theme";
+import { extractJSON } from "../../lib/parseJSON";
 
 function Stage0({ onApprove, saved, data, isComplete, onBackToSummary }) {
   const [topic, setTopic] = useState(saved?.topic || "");
@@ -43,8 +44,8 @@ Return ONLY valid JSON:
   "authenticDetails": ["specific detail 1", "specific detail 2", "specific detail 3"],
   "avoidCliches": ["cliche or generic take to avoid 1", "cliche to avoid 2"]
 }`, 2000);
-    try { setResearch(JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g, "").trim())); }
-    catch { setResearch({ error: "Could not parse. Try regenerating." }); }
+    const parsed = extractJSON(raw);
+    setResearch(parsed || { error: "The AI response couldn't be parsed. This sometimes happens — click Try Again." });
     setLoading(false);
   };
 

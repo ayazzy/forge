@@ -3,9 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useChannelProfile } from "../hooks/useChannelProfile";
 import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets, getBilling, claude, claudeStream } from "../lib/api";
+import { extractJSON } from "../lib/parseJSON";
 import { loadGuestSession, clearGuestSession } from "./TryPipeline";
 import { invalidateBillingCache } from "../components/ui/ProtectedRoute";
 import { analyzeScript } from "../lib/analysis";
+import ErrorBoundary from "../components/ui/ErrorBoundary";
+import ConfirmModal from "../components/ui/ConfirmModal";
 import { S, COLORS, ACCENT } from "../styles/theme";
 import Stage0Research from "../components/stages/Stage0Research";
 import Stage1Script from "../components/stages/Stage1Script";
@@ -53,6 +56,14 @@ export default function Pipeline() {
   const [stageVersionKeys, setStageVersionKeys] = useState({});
 
   // One-shot state
+  // 3.1 — localStorage backup for pipeline state (survives refresh before first DB save)
+  const BACKUP_KEY = 'forge_pipeline_backup';
+  const [backupPrompt, setBackupPrompt] = useState(null); // { stageData, activeStage, completedStages, timestamp }
+
+  // 3.2 — Confirm modals
+  const [newEpisodeConfirm, setNewEpisodeConfirm] = useState(false);
+  const [oneShotConfirm, setOneShotConfirm] = useState(false);
+
   const [showOneShot, setShowOneShot] = useState(false);
   const [oneShotUpgradePrompt, setOneShotUpgradePrompt] = useState(false);
   const [oneShotTopic, setOneShotTopic] = useState('');
@@ -81,6 +92,20 @@ export default function Pipeline() {
     if (guest?.stageData && Object.keys(guest.stageData).length > 0) {
       setGuestSession(guest);
     }
+    // 3.1 — Check for localStorage backup (unsaved work from before first DB save)
+    try {
+      const raw = localStorage.getItem(BACKUP_KEY);
+      if (raw) {
+        const backup = JSON.parse(raw);
+        const ageMs = Date.now() - (backup.timestamp || 0);
+        const is24h = ageMs < 24 * 60 * 60 * 1000;
+        if (is24h && backup.stageData && Object.keys(backup.stageData).length > 0) {
+          setBackupPrompt(backup);
+        } else {
+          localStorage.removeItem(BACKUP_KEY);
+        }
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -88,6 +113,20 @@ export default function Pipeline() {
     loadEpisodes();
     getBilling().then(setBilling).catch(() => {});
   }, [user]);
+
+  // 3.1 — Save to localStorage backup whenever stageData changes (before first DB save)
+  useEffect(() => {
+    if (currentEpisodeId) return; // Already saved to DB — no backup needed
+    if (Object.keys(stageData).length === 0) return;
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({
+        stageData,
+        activeStage,
+        completedStages: [...completedStages],
+        timestamp: Date.now(),
+      }));
+    } catch {}
+  }, [stageData, activeStage, completedStages, currentEpisodeId]);
 
   useEffect(() => {
     if (!currentEpisodeId) return;
@@ -165,6 +204,7 @@ export default function Pipeline() {
             status: 'draft',
           });
           setCurrentEpisodeId(episode.id);
+          localStorage.removeItem(BACKUP_KEY); // 3.1 — clear backup once saved to DB
         } catch (e) {
           if (e.message?.includes('Episode limit')) {
             setEpisodeLimitError(true);
@@ -187,6 +227,7 @@ export default function Pipeline() {
     setCurrentEpisodeId(null);
     setPersistedAssets({ audio: {}, images: {} });
     setShowResetConfirm(false);
+    localStorage.removeItem(BACKUP_KEY); // 3.1 — clear backup on reset
   };
 
   const handleLoadEpisode = (ep) => {
@@ -278,7 +319,7 @@ ${oneShotCtx ? `Additional context: ${oneShotCtx}` : ''}
 Return ONLY valid JSON:
 {"coreConcept":"string","context":"string","mainSubject":{"name":"string","role":"string","angle":"string"},"keyFacts":[{"fact":"string","why":"string"}],"authenticDetails":["string"],"avoidCliches":["string"]}`, 2000);
       let research = null;
-      try { research = JSON.parse(researchRaw.replace(/```json|```/g, '').trim()); } catch {}
+      research = extractJSON(researchRaw);
       setOsStep('research', 'done');
 
       const researchText = research ? `TOPIC: ${oneShotTopic}\nCORE CONCEPT: ${research.coreConcept || ''}\nCONTEXT: ${research.context || ''}\nKEY FACTS:\n${(research.keyFacts || []).map(f => `• ${f.fact} — ${f.why}`).join('\n')}` : '';
@@ -355,6 +396,52 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
 
   return (
     <AppLayout>
+      {/* 3.2 — Confirm modals */}
+      <ConfirmModal
+        isOpen={newEpisodeConfirm}
+        onClose={() => setNewEpisodeConfirm(false)}
+        onConfirm={() => { setShowResetConfirm(false); handleReset(); }}
+        title="Start a new episode?"
+        description="Make sure your current work is saved before starting fresh. Any unsaved stage data will be lost."
+        confirmText="Start new"
+        variant="warning"
+      />
+      <ConfirmModal
+        isOpen={oneShotConfirm}
+        onClose={() => setOneShotConfirm(false)}
+        onConfirm={() => { setShowOneShot(true); setOneShotDone(false); setOneShotTopic(''); setOneShotCtx(''); setOneShotSteps({}); setOneShotScript(''); }}
+        title="Re-run One Shot?"
+        description="This will replace all current stage data with a new One Shot generation."
+        confirmText="Re-run"
+        variant="warning"
+      />
+
+      {/* 3.1 — Restore backup prompt */}
+      {backupPrompt && !currentEpisodeId && (
+        <div style={{ background: '#0a1a2a', borderBottom: '1px solid #0d3350', padding: '10px 32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '12px', color: '#7dd3fc', flex: 1 }}>
+            You have unsaved work from {new Date(backupPrompt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Restore it?
+          </span>
+          <button
+            onClick={() => {
+              setStageData(backupPrompt.stageData);
+              setCompletedStages(new Set(backupPrompt.completedStages || []));
+              setActiveStage(backupPrompt.activeStage || 0);
+              setBackupPrompt(null);
+            }}
+            style={{ background: '#0ea5e9', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Restore →
+          </button>
+          <button
+            onClick={() => { localStorage.removeItem(BACKUP_KEY); setBackupPrompt(null); }}
+            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '14px', padding: '4px', fontFamily: 'inherit' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {showLibrary && (
         <EpisodeLibrary
           episodes={episodes}
@@ -390,7 +477,15 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
           return (
             <>
               <button
-                onClick={handleOneShotOpen}
+                onClick={() => {
+                  if (oneShotDisabled) return;
+                  // 3.2 — If stages already have data, confirm before re-running
+                  if (Object.keys(stageData).length > 0 && !oneShotDone) {
+                    setOneShotConfirm(true);
+                  } else {
+                    handleOneShotOpen();
+                  }
+                }}
                 disabled={oneShotDisabled}
                 style={{ background: 'rgba(224,53,53,0.08)', border: '1px solid rgba(224,53,53,0.3)', color: oneShotDisabled ? '#555' : ACCENT, padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: oneShotDisabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 4px 20px rgba(224,53,53,0.15)', opacity: oneShotDisabled ? 0.5 : 1 }}
               >
@@ -406,7 +501,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
                   <span style={{ fontSize: '11px', background: 'rgba(217,119,6,0.15)', color: '#d97706', padding: '4px 10px', borderRadius: '6px', fontWeight: '600' }}>1 episode remaining</span>
                   {!showResetConfirm && (
                     <button
-                      onClick={() => setShowResetConfirm(true)}
+                      onClick={() => Object.keys(stageData).length > 0 ? setNewEpisodeConfirm(true) : setShowResetConfirm(true)}
                       style={{ background: ACCENT, border: 'none', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
                     >
                       + New Episode
@@ -416,7 +511,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
               ) : (
                 !showResetConfirm && (
                   <button
-                    onClick={() => setShowResetConfirm(true)}
+                    onClick={() => Object.keys(stageData).length > 0 ? setNewEpisodeConfirm(true) : setShowResetConfirm(true)}
                     style={{ background: ACCENT, border: 'none', color: '#fff', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     + New Episode
@@ -685,14 +780,14 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
           </div>
         ) : (
           <>
-            {activeStage === 0 && <Stage0Research key={stageVersionKeys[0] || 0} onApprove={d => handleApprove(0, d)} saved={stageData[0]} data={mergedData} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 1 && <Stage1Script key={stageVersionKeys[1] || 0} onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 2 && <Stage2Voiceover key={stageVersionKeys[2] || 0} data={mergedData} onApprove={d => handleApprove(2, d)} saved={stageData[2]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 3 && <Stage3Sound key={stageVersionKeys[3] || 0} data={mergedData} onApprove={d => handleApprove(3, d)} saved={stageData[3]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 4 && <Stage4Images key={stageVersionKeys[4] || 0} data={mergedData} onApprove={d => handleApprove(4, d)} saved={stageData[4]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 5 && <Stage5Assembly key={stageVersionKeys[5] || 0} data={mergedData} onApprove={d => handleApprove(5, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 6 && <Stage6Thumbnail key={stageVersionKeys[6] || 0} data={mergedData} onApprove={d => handleApprove(6, d)} saved={stageData[6]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
-            {activeStage === 7 && <Stage7Metadata key={stageVersionKeys[7] || 0} data={mergedData} saved={stageData[7]} onApprove={d => handleApprove(7, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} />}
+            {activeStage === 0 && <ErrorBoundary stageMode><Stage0Research key={stageVersionKeys[0] || 0} onApprove={d => handleApprove(0, d)} saved={stageData[0]} data={mergedData} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 1 && <ErrorBoundary stageMode><Stage1Script key={stageVersionKeys[1] || 0} onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 2 && <ErrorBoundary stageMode><Stage2Voiceover key={stageVersionKeys[2] || 0} data={mergedData} onApprove={d => handleApprove(2, d)} saved={stageData[2]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 3 && <ErrorBoundary stageMode><Stage3Sound key={stageVersionKeys[3] || 0} data={mergedData} onApprove={d => handleApprove(3, d)} saved={stageData[3]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 4 && <ErrorBoundary stageMode><Stage4Images key={stageVersionKeys[4] || 0} data={mergedData} onApprove={d => handleApprove(4, d)} saved={stageData[4]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 5 && <ErrorBoundary stageMode><Stage5Assembly key={stageVersionKeys[5] || 0} data={mergedData} onApprove={d => handleApprove(5, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 6 && <ErrorBoundary stageMode><Stage6Thumbnail key={stageVersionKeys[6] || 0} data={mergedData} onApprove={d => handleApprove(6, d)} saved={stageData[6]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 7 && <ErrorBoundary stageMode><Stage7Metadata key={stageVersionKeys[7] || 0} data={mergedData} saved={stageData[7]} onApprove={d => handleApprove(7, d)} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
           </>
         )}
       </div>

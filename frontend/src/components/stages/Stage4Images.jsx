@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { claude, generateIdeogramImage, uploadAsset } from "../../lib/api";
 import { selectImagePoints, MOOD_COLORS } from "../../lib/analysis";
 import { S, COLORS, REASON_COLORS } from "../../styles/theme";
+import { extractJSON } from "../../lib/parseJSON";
 
 const STYLE_BASE_DEFAULT = "--ar 16:9 --style raw --v 6.1";
 
@@ -43,11 +44,9 @@ Also write ONE sentence (max 15 words) explaining why a new image is needed here
 Return ONLY valid JSON:
 {"prompt":"...","why":"...","segmentIndex":${i}}`, 600);
       let prompt = raw, why = "";
-      try {
-        const p = JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g, "").trim());
-        prompt = `${p.prompt}, ${imageStyle}`;
-        why = p.why;
-      } catch { prompt = `${raw}, ${imageStyle}`; }
+      const p = extractJSON(raw);
+      if (p?.prompt) { prompt = `${p.prompt}, ${imageStyle}`; why = p.why || ""; }
+      else { prompt = `${raw}, ${imageStyle}`; }
       results.push({ ...pt, prompt, why, imageNumber: i + 1, segmentIndex: i });
       setPrompts([...results]);
       setProgress({ current: i + 1, total: imagePoints.length });

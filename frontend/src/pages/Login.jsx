@@ -107,6 +107,9 @@ export default function Login() {
           <div>
             <label style={labelStyle}>Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required style={inputStyle} />
+            <div style={{ textAlign: "right", marginTop: "6px" }}>
+              <Link to="/forgot-password" style={{ fontSize: "12px", color: "#555", textDecoration: "none" }}>Forgot password?</Link>
+            </div>
           </div>
           {error && (
             <div style={{ fontSize: "12px", color: "#e03535", background: "#2a1515", border: "1px solid #3a1515", borderRadius: "6px", padding: "8px 12px" }}>

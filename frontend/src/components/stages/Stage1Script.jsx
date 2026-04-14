@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { claude, claudeStream } from "../../lib/api";
 import { analyzeScript, formatTime, MOOD_COLORS } from "../../lib/analysis";
 import { S, COLORS, ACCENT } from "../../styles/theme";
+import { extractJSON } from "../../lib/parseJSON";
 
 function Stage1({ onApprove, saved, researchData, isComplete, onBackToSummary }) {
   const [topic, setTopic] = useState(saved?.topic || researchData?.topic || "");
@@ -10,6 +11,8 @@ function Stage1({ onApprove, saved, researchData, isComplete, onBackToSummary })
   const [script, setScript] = useState(saved?.script || "");
   const [analysis, setAnalysis] = useState(saved?.analysis || null);
   const [loading, setLoading] = useState(false);
+  const [genError, setGenError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [tab, setTab] = useState("script");
   const [copied, setCopied] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState("");
@@ -53,8 +56,8 @@ Score it on these dimensions, each 1-10:
 - Pacing: does the rhythm pull you forward?
 Return ONLY valid JSON:
 {"overall":7,"dimensions":{"intrigue":{"score":8,"note":"one sentence feedback"},"specificity":{"score":7,"note":"..."},"stakes":{"score":6,"note":"..."},"voice":{"score":8,"note":"..."},"pacing":{"score":7,"note":"..."}},"rewrite":"An improved version of the hook in the same voice","whyBetter":"One sentence explaining what the rewrite fixes"}`, 1000);
-    try { setHookScore(JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g, "").trim())); }
-    catch { setHookScore({ error: "Could not parse." }); }
+    const parsed = extractJSON(raw);
+    setHookScore(parsed || { error: "Could not parse. Try again." });
     setScoringHook(false);
   };
 
@@ -67,8 +70,8 @@ ${text.substring(0, 3000)}
 Return ONLY valid JSON:
 {"risks":[{"timestamp":"approx minute mark e.g. 3:00","risk":"why viewers drop here","originalLine":"the exact line or passage causing the problem","rewrite":"improved version","fix":"one sentence on what changed"}]}
 Identify exactly 3 risks. Be specific about which lines are the problem.`, 1500);
-    try { setRetention(JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g, "").trim())); }
-    catch { setRetention({ error: "Could not parse." }); }
+    const parsed = extractJSON(raw);
+    setRetention(parsed || { error: "Could not parse. Try again." });
     setAnalyzingRetention(false);
   };
 
@@ -116,6 +119,7 @@ Identify exactly 3 risks. Be specific about which lines are the problem.`, 1500)
   const generate = async () => {
     if (!topic.trim()) return;
     setLoading(true);
+    setGenError(null);
     setScript("");
     setAnalysis(null);
     setHookScore(null);
@@ -150,8 +154,13 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         fullText += chunk;
         setScript(fullText);
       }, 4000);
+      if (!fullText.trim()) throw new Error('Empty response received.');
     } catch (e) {
       console.error('Stream error:', e);
+      setGenError(e.message || 'Generation failed. Please try again.');
+      setRetryCount(c => c + 1);
+      setLoading(false);
+      return;
     }
 
     setLoading(false);
@@ -224,6 +233,14 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
             <button style={S.btnPrimary(loading || !topic.trim())} onClick={generate} disabled={loading || !topic.trim()}>
               {loading ? "Writing your script…" : script ? "Rewrite script" : "Generate Script"}
             </button>
+            {genError && (
+              <div style={{ background: '#2a1515', border: '1px solid #3a1515', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#e03535' }}>
+                {genError}
+                {retryCount >= 3 && (
+                  <div style={{ marginTop: '4px', color: '#d97706' }}>Still failing? Try simplifying your topic or refreshing the page.</div>
+                )}
+              </div>
+            )}
             {script && (
               <button style={{ ...S.btnApprove, justifyContent: "center" }} onClick={() => onApprove({ script, analysis, episode, topic, ctx })}>
                 Looks good, continue →

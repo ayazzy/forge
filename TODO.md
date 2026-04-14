@@ -35,6 +35,17 @@
 
 ---
 
+## Security & Infrastructure
+
+- [ ] **Supabase RLS policies** — Backend currently uses service role key (bypasses RLS). Long-term, set up proper Row Level Security policies on all tables (profiles, episodes, assets, usage, saved_topics) and use user JWTs for per-request Supabase clients. This is the correct architecture but requires careful migration.
+- [ ] **Email verification enforcement** — Supabase sends confirmation emails but the app doesn't check verification status. Add check to ProtectedRoute or auth middleware to require verified email before accessing paid features.
+- [ ] **Mobile responsiveness** — AppLayout uses fixed 220px sidebar and hardcoded grid layouts. Needs: collapsible sidebar (hamburger menu), single-column pipeline on mobile, touch-friendly inputs. Not a launch blocker for desktop-first creator tool, but needed before any mobile marketing.
+- [ ] **CSRF protection** — Currently using Bearer token auth (not auto-attached like cookies), so CSRF risk is lower. If cookie-based auth is ever added, implement CSRF tokens immediately.
+- [ ] **Error reporting service** — ErrorBoundary currently logs to console. Integrate Sentry or similar for production error tracking.
+- [ ] **Processed events cleanup** — The processed_events table (Stripe idempotency) needs a periodic cleanup job. Delete events older than 30 days. Can be a Supabase cron or a scheduled Railway job.
+
+---
+
 ## Completed
 
 - [x] **Payments (Stripe)** — Subscriptions (Creator/Studio/Pro) + episode packs. 7-day free trial. Webhooks, billing portal, plan gating.

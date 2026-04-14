@@ -841,7 +841,11 @@ export default function Landing() {
                 : <Link key={item.label} to={item.href} style={{ fontSize:'13px',color:C.textMuted }}>{item.label}</Link>
             ))}
           </div>
-          <div style={{ fontSize:'12px',color:C.textMuted }}>© 2026 Forge</div>
+          <div style={{ display:'flex',alignItems:'center',gap:'16px' }}>
+            <Link to="/terms" style={{ fontSize:'12px',color:C.textMuted,textDecoration:'none' }}>Terms</Link>
+            <Link to="/privacy" style={{ fontSize:'12px',color:C.textMuted,textDecoration:'none' }}>Privacy</Link>
+            <div style={{ fontSize:'12px',color:C.textMuted }}>© 2026 Forge</div>
+          </div>
         </div>
       </footer>
     </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { claude } from "../../lib/api";
 import { S, COLORS, ACCENT } from "../../styles/theme";
+import { extractJSON } from "../../lib/parseJSON";
 
 function Stage6({ data, saved, onApprove, isComplete, onBackToSummary }) {
   const [meta, setMeta] = useState(saved?.meta || null);
@@ -30,7 +31,8 @@ Return ONLY valid JSON:
   "chapters": [{"time":"0:00","title":"chapter title"}]
 }
 CRITICAL: All chapter timestamps must fall within the ${totalMins} video duration. Space chapters evenly across the actual runtime.`, 2000);
-    try { setMeta(JSON.parse(raw.replace(/```json|```/g, "").trim())); } catch (e) {}
+    const parsed = extractJSON(raw);
+    if (parsed) setMeta(parsed);
     setLoading(false);
   };
 

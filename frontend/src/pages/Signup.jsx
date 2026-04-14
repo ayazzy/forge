@@ -67,6 +67,7 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,12 +142,27 @@ export default function Signup() {
               <label style={labelStyle}>Confirm Password</label>
               <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" required style={inputStyle} />
             </div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+              <input
+                type="checkbox"
+                id="terms-check"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                style={{ marginTop: "2px", accentColor: ACCENT, cursor: "pointer", flexShrink: 0 }}
+              />
+              <label htmlFor="terms-check" style={{ fontSize: "12px", color: "#888", lineHeight: "1.5", cursor: "pointer" }}>
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" style={{ color: ACCENT, textDecoration: "none" }}>Terms of Service</Link>
+                {" "}and{" "}
+                <Link to="/privacy" target="_blank" style={{ color: ACCENT, textDecoration: "none" }}>Privacy Policy</Link>
+              </label>
+            </div>
             {error && (
               <div style={{ fontSize: "12px", color: "#e03535", background: "#2a1515", border: "1px solid #3a1515", borderRadius: "6px", padding: "8px 12px" }}>
                 {error}
               </div>
             )}
-            <button type="submit" disabled={loading} style={{ background: loading ? "#2a2a2a" : ACCENT, color: loading ? "#888" : "#fff", border: "none", borderRadius: "6px", padding: "12px", fontSize: "15px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", marginTop: "4px", fontFamily: "inherit" }}>
+            <button type="submit" disabled={loading || !agreedToTerms} style={{ background: loading || !agreedToTerms ? "#2a2a2a" : ACCENT, color: loading || !agreedToTerms ? "#888" : "#fff", border: "none", borderRadius: "6px", padding: "12px", fontSize: "15px", fontWeight: "600", cursor: loading || !agreedToTerms ? "not-allowed" : "pointer", marginTop: "4px", fontFamily: "inherit" }}>
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { generateSpeech, claude, uploadAsset } from "../../lib/api";
 import { injectV3Tags } from "../../lib/analysis";
 import { S, VOICE_PALETTE, COLORS, ACCENT, renderTagged } from "../../styles/theme";
+import { extractJSON } from "../../lib/parseJSON";
 
 function Stage2({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const taggedScript = injectV3Tags(data.script);
@@ -43,8 +44,9 @@ Script:
 ${data.script}
 Return ONLY valid JSON:
 {"segments":[{"text":"exact paragraph text","voice":"${voices[0].name}"}]}`, 4000);
+    const parsedResult = extractJSON(raw);
     try {
-      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      const parsed = parsedResult || (() => { throw new Error('parse failed'); })();
       setSegments(parsed.segments.map((seg, i) => ({
         id: `seg-${i}`,
         text: seg.text,

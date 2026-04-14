@@ -5,6 +5,7 @@ import Stage1Script from '../components/stages/Stage1Script';
 import { claude, claudeStream } from '../lib/api';
 import { analyzeScript } from '../lib/analysis';
 import { supabase } from '../lib/supabase';
+import { extractJSON } from '../lib/parseJSON';
 
 const ACCENT = '#e03535';
 const GUEST_KEY = 'forge_guest_session';
@@ -162,9 +163,7 @@ Channel focus: ${profile?.description || ''}
 Topic: ${topic}
 Script opening: "${script.substring(0, 400)}"
 Return ONLY valid JSON: {"titles":[{"title":"string","angle":"one sentence on why this title works"}]}`, 600);
-    let parsed = null;
-    try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-    catch { parsed = { error: true }; }
+    const parsed = extractJSON(raw) || { error: true };
     setTitles(parsed);
     return parsed;
   };
@@ -174,9 +173,7 @@ Return ONLY valid JSON: {"titles":[{"title":"string","angle":"one sentence on wh
 Script: "${script.substring(0, 2500)}"
 Return ONLY valid JSON: {"characters":[{"name":"string","role":"string","voiceStyle":"e.g. deep authoritative male, warm female narrator","sampleLine":"exact quote from the script, max 25 words"}]}
 Identify 1-3 voices only. sampleLine must be a verbatim excerpt from the script above.`, 600);
-    let parsed = null;
-    try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-    catch { parsed = { error: true }; }
+    const parsed = extractJSON(raw) || { error: true };
     setVoices(parsed);
     return parsed;
   };
@@ -186,9 +183,7 @@ Identify 1-3 voices only. sampleLine must be a verbatim excerpt from the script 
 Topic: ${topic}
 Script: "${script.substring(0, 2000)}"
 Return ONLY valid JSON: {"prompts":[{"scene":"2-4 word scene label","prompt":"full Midjourney prompt with camera angle, lighting, mood, art style — no people's faces"}]}`, 800);
-    let parsed = null;
-    try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-    catch { parsed = { error: true }; }
+    const parsed = extractJSON(raw) || { error: true };
     setImagePrompts(parsed);
     return parsed;
   };
@@ -237,8 +232,7 @@ Return ONLY valid JSON:
   "authenticDetails": ["string"],
   "avoidCliches": ["string"]
 }`, 2000);
-      let research = null;
-      try { research = JSON.parse(researchRaw.replace(/```json|```/g, '').trim()); } catch {}
+      const research = extractJSON(researchRaw);
       setStep('research', 'done');
 
       const researchText = research ? `TOPIC: ${oneShotTopic}\nCORE CONCEPT: ${research.coreConcept || ''}\nCONTEXT: ${research.context || ''}\nKEY FACTS:\n${(research.keyFacts || []).map(f => `• ${f.fact} — ${f.why}`).join('\n')}` : '';
