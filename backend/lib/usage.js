@@ -1,10 +1,10 @@
 import { supabase } from './supabase.js';
 
 export const PLAN_LIMITS = {
-  free:    { claude_calls: 20,   elevenlabs_characters: 10000,  ideogram_generations: 5   },
-  creator: { claude_calls: 300,  elevenlabs_characters: 75000,  ideogram_generations: 50  },
-  studio:  { claude_calls: 750,  elevenlabs_characters: 175000, ideogram_generations: 125 },
-  pro:     { claude_calls: 2000, elevenlabs_characters: 450000, ideogram_generations: 350 },
+  free:    { claude_calls: 20,   cartesia_characters: 50000,   ideogram_generations: 10  },
+  creator: { claude_calls: 250,  cartesia_characters: 400000,  ideogram_generations: 150 },
+  studio:  { claude_calls: 750,  cartesia_characters: 1200000, ideogram_generations: 450 },
+  pro:     { claude_calls: 2000, cartesia_characters: 3000000, ideogram_generations: 1200 },
 };
 
 export async function trackUsage(userId, field, increment = 1) {

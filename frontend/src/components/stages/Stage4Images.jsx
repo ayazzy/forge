@@ -8,6 +8,7 @@ const STYLE_BASE_DEFAULT = "--ar 16:9 --style raw --v 6.1";
 
 function Stage4({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const [prompts, setPrompts] = useState(saved?.prompts || []);
+  const [thumbnailConcepts, setThumbnailConcepts] = useState(saved?.thumbnailConcepts || null);
   const [mode, setMode] = useState(saved?.mode || "manual");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -20,19 +21,21 @@ function Stage4({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const [generating, setGenerating] = useState({});
   const [imgErrors, setImgErrors] = useState({});
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [generateAllConfirm, setGenerateAllConfirm] = useState(false);
 
   const generatePrompts = useCallback(async () => {
     setLoading(true);
     setPrompts([]);
     setImages({});
+    setThumbnailConcepts(null);
     const imagePoints = selectImagePoints(data.analysis.sections);
-    setProgress({ current: 0, total: imagePoints.length });
+    setProgress({ current: 0, total: imagePoints.length + 1 });
     const results = [];
     const channelName = data.channelProfile?.channel_name || "a YouTube channel";
     const imageStyle = data.channelProfile?.prompt_config?.imageStyle || `oil painting texture, no text, ${STYLE_BASE_DEFAULT}`;
+    const era = data.era || "unspecified";
     for (let i = 0; i < imagePoints.length; i++) {
       const pt = imagePoints[i];
-      const era = data.era || "unspecified";
       const raw = await claude(`You are an image prompt expert for ${channelName}.
 Write ONE image prompt for this paragraph:
 "${pt.text.substring(0, 400)}"
@@ -49,8 +52,22 @@ Return ONLY valid JSON:
       else { prompt = `${raw}, ${imageStyle}`; }
       results.push({ ...pt, prompt, why, imageNumber: i + 1, segmentIndex: i });
       setPrompts([...results]);
-      setProgress({ current: i + 1, total: imagePoints.length });
+      setProgress({ current: i + 1, total: imagePoints.length + 1 });
     }
+
+    // Combined thumbnail concepts call
+    try {
+      const thumbRaw = await claude(`You are a YouTube thumbnail strategist for ${channelName}.
+Generate 3 thumbnail concepts. One image-led, one text-led, one emotion-led.
+Topic: ${data.topic || ""}
+Era/Region: ${era}
+Script excerpt: "${(data.script || "").substring(0, 800)}"
+Return ONLY valid JSON:
+{"concepts":[{"approach":"Image-led","headline":"Max 5 words","subtext":"Max 3 words or null","imagePrompt":"Midjourney prompt","typography":"font description","colorPalette":{"bg":"hex","textPrimary":"hex","textAccent":"hex"},"notes":"1 sentence on why this works"}]}`, 1000, 'haiku');
+      const thumbParsed = extractJSON(thumbRaw);
+      if (thumbParsed?.concepts) setThumbnailConcepts(thumbParsed.concepts);
+    } catch {}
+    setProgress({ current: imagePoints.length + 1, total: imagePoints.length + 1 });
     setLoading(false);
   }, [data]);
 
@@ -77,6 +94,7 @@ Return ONLY valid JSON:
   };
 
   const generateAllImages = async () => {
+    setGenerateAllConfirm(false);
     setGeneratingAll(true);
     for (const p of prompts) {
       if (!images[p.imageNumber]) await generateImage(p);
@@ -178,8 +196,15 @@ Return ONLY valid JSON:
               {!loading && <button style={S.btnSecondary(false)} onClick={generatePrompts}>Regenerate</button>}
               {mode === "manual" && <button style={S.btnSecondary(copied === "all")} onClick={copyAll}>{copied === "all" ? "Copied!" : "Copy All"}</button>}
               {mode === "manual" && <button style={S.btnSecondary(false)} onClick={exportAll}>↓ Export</button>}
-              {mode === "auto" && !generatingAll && !allImages && (
-                <button style={S.btnPrimary(false)} onClick={generateAllImages}>Generate All Images</button>
+              {mode === "auto" && !generatingAll && !allImages && !generateAllConfirm && (
+                <button style={S.btnPrimary(false)} onClick={() => setGenerateAllConfirm(true)}>Generate All Images</button>
+              )}
+              {mode === "auto" && !generatingAll && !allImages && generateAllConfirm && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: COLORS.textSecondary }}>Generate {prompts.filter(p => !images[p.imageNumber]).length} images?</span>
+                  <button style={{ ...S.btnPrimary(false), padding: '6px 14px' }} onClick={generateAllImages}>Confirm</button>
+                  <button style={{ ...S.btnSecondary(false), padding: '6px 10px' }} onClick={() => setGenerateAllConfirm(false)}>Cancel</button>
+                </div>
               )}
               {mode === "auto" && generatingAll && (
                 <button style={S.btnPrimary(true)} disabled>Generating…</button>
@@ -243,7 +268,7 @@ Return ONLY valid JSON:
           ))}
 
           {!loading && (
-            <button style={{ ...S.btnApprove, width: "100%", justifyContent: "center", marginTop: "8px" }} onClick={() => onApprove({ prompts, images, mode })}>
+            <button style={{ ...S.btnApprove, width: "100%", justifyContent: "center", marginTop: "8px" }} onClick={() => onApprove({ prompts, images, mode, thumbnailConcepts })}>
               Approve &amp; Continue →
             </button>
           )}

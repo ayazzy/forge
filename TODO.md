@@ -21,7 +21,7 @@
 
 - [x] **Switch ElevenLabs → Cartesia TTS** — Cartesia backend route + voice browser in Stage2. Speed slider, audio caching, 1-hr voice cache.
 - [ ] **Trends auto-refresh** — Topics marked stale after 24h should trigger background regeneration, not require a manual button click.
-- [ ] **Bulk asset export** — Download all assets for an episode as a ZIP (research brief, script, audio, images, metadata).
+- [x] **Bulk asset export** — Download all assets for an episode as a ZIP (research brief, script, audio, images, metadata).
 - [x] **Test Stripe end-to-end** — Full checkout flow with a real card. Currently running in live mode.
 
 ---
@@ -31,7 +31,7 @@
 - [ ] **Channel performance dashboard** — After YouTube Analytics integration, surface which niches, tones, and lengths perform best for that channel.
 - [ ] **A/B title tracking** — Stage 7 already generates 3 title options. Let users mark which they used and track CTR over time.
 - [ ] **Collaboration / team seats** — Already on the Studio pricing plan. Agencies and larger channels need this.
-- [ ] **Subtitle / caption generation** — Full script + audio already exists. Generate an SRT file at the end of the pipeline.
+- [x] **Subtitle / caption generation** — Full script + audio already exists. Generate an SRT file at the end of the pipeline.
 
 ---
 

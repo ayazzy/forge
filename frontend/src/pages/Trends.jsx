@@ -77,7 +77,20 @@ export default function Trends() {
     }
   };
 
-  const sendToPipeline = (topic) => navigate(`/pipeline?topic=${encodeURIComponent(topic)}`);
+  const sendToPipeline = (topic, result = null) => {
+    if (result) {
+      try {
+        sessionStorage.setItem('forge_trend_context', JSON.stringify({
+          topic: result.topic || topic,
+          competition: result.competitionLevel || null,
+          angle: result.angle || null,
+          ratio: result.evidenceRatio || null,
+          whyItWorks: result.whyItWorks || null,
+        }));
+      } catch {}
+    }
+    navigate(`/pipeline?topic=${encodeURIComponent(topic)}`);
+  };
   const channelName = channelProfile?.channel_name || 'your channel';
 
   const isSaved = (topic) => savedTopics.some(t => t.topic === topic);
@@ -317,7 +330,7 @@ export default function Trends() {
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                       <button
-                        onClick={() => sendToPipeline(result.topic)}
+                        onClick={() => sendToPipeline(result.topic, result)}
                         style={{
                           flex: 1, background: '#e03535', color: '#fff', border: 'none',
                           padding: '10px 16px', borderRadius: '8px', fontSize: '12px',
@@ -397,7 +410,7 @@ export default function Trends() {
                     )}
                     <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                       <button
-                        onClick={() => sendToPipeline(t.topic)}
+                        onClick={() => sendToPipeline(t.topic, { topic: t.topic, competitionLevel: t.competition_level, angle: t.angle, evidenceRatio: t.evidence_ratio, whyItWorks: t.why_it_works })}
                         style={{ flex: 1, background: '#e03535', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
                       >
                         Use in pipeline →
@@ -548,7 +561,7 @@ export default function Trends() {
 
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
-                      onClick={() => sendToPipeline(validation.topic)}
+                      onClick={() => sendToPipeline(validation.topic, { topic: validation.topic, angle: validation.analysis?.angle, ratio: validation.avgRatio })}
                       style={{
                         flex: 1, background: '#e03535', color: '#fff', border: 'none',
                         padding: '12px 24px', borderRadius: '8px', fontSize: '13px',

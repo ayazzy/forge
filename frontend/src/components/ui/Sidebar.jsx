@@ -7,18 +7,15 @@ const ACCENT = '#e03535';
 const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: '⬡' },
   { label: 'Pipeline', href: '/pipeline', icon: '◈' },
-  { label: 'Episodes', href: '/episodes', icon: '▤' },
   { label: 'Trends', href: '/trends', icon: '↗' },
-  { label: 'Saved Topics', href: '/saved-topics', icon: '🔖' },
   { label: 'Stats', href: '/stats', icon: '↯' },
-  { label: 'Calendar', href: '/calendar', icon: '▦' },
   { label: 'Settings', href: '/settings', icon: '◎' },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { channelProfile, billing, usage, hasPlan, planLabel } = useAppData();
+  const { channelProfile, billing, hasPlan, planLabel } = useAppData();
   const freeEpisodeUsed = billing?.free_episode_used ?? true;
   // Users with no plan but unused free episode have access — don't lock the nav
   const locked = hasPlan === false && freeEpisodeUsed === true;
@@ -172,39 +169,6 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-        {/* Mini usage meters */}
-        {usage && (
-          <div style={{ marginBottom: '14px' }}>
-            {[
-              { key: 'claude_calls',          limitKey: 'claude_calls',          label: 'AI' },
-              { key: 'elevenlabs_characters',  limitKey: 'elevenlabs_characters', label: 'Voice' },
-              { key: 'ideogram_generations',   limitKey: 'ideogram_generations',  label: 'Images' },
-            ].map(m => {
-              const FALLBACK = { claude_calls: 300, elevenlabs_characters: 75000, ideogram_generations: 50 };
-              const used = usage[m.key] || 0;
-              const limit = usage?.limits?.[m.limitKey] || FALLBACK[m.limitKey];
-              const pct = Math.min((used / limit) * 100, 100);
-              const color = pct > 90 ? '#e03535' : pct > 70 ? '#d97706' : '#444';
-              return (
-                <div key={m.key} style={{ marginBottom: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                    <span style={{ fontSize: '10px', color: '#666' }}>{m.label}</span>
-                    <span style={{ fontSize: '10px', color: pct > 90 ? '#e03535' : '#555' }}>
-                      {pct > 90 ? 'Almost full' : `${Math.round(pct)}%`}
-                    </span>
-                  </div>
-                  <div style={{ height: '2px', background: '#252525', borderRadius: '2px' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
-                  </div>
-                </div>
-              );
-            })}
-            <Link to="/settings#plan-usage" style={{ fontSize: '10px', color: '#555', textDecoration: 'none', marginTop: '4px', display: 'block' }}>
-              View usage →
-            </Link>
-          </div>
-        )}
-
         <button
           onClick={handleSignOut}
           style={{

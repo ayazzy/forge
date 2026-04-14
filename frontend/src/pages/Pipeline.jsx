@@ -277,6 +277,7 @@ export default function Pipeline() {
     titles: 'Generating titles',
     voices: 'Building voice cast',
     images: 'Creating image prompts',
+    metadata: 'Writing metadata',
   };
 
   const setOsStep = (key, status) => setOneShotSteps(prev => ({ ...prev, [key]: status }));
@@ -335,38 +336,80 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
 
       const analysis = analyzeScript(fullScript);
 
-      // Parallel: hook + titles + voices + images
+      // Parallel: hook + titles + voices + images + metadata
       setOsStep('hook', 'loading');
       setOsStep('titles', 'loading');
       setOsStep('voices', 'loading');
       setOsStep('images', 'loading');
+      setOsStep('metadata', 'loading');
+
+      const totalMins = `${analysis.minutes}:${String(analysis.seconds).padStart(2, '0')}`;
+      let voiceSegments = null;
+      let imagePrompts = null;
+      let metaResult = null;
 
       await Promise.all([
-        claude(`Score this hook briefly. Hook: "${(fullScript.split(/\n\n/)[0] || '').substring(0, 300)}" Return JSON: {"overall":7}`, 100)
+        claude(`Score this hook briefly. Hook: "${(fullScript.split(/\n\n/)[0] || '').substring(0, 300)}" Return JSON: {"overall":7}`, 100, 'haiku')
           .then(() => setOsStep('hook', 'done')).catch(() => setOsStep('hook', 'done')),
-        claude(`Generate 3 YouTube titles. Topic: ${oneShotTopic}. Script: "${fullScript.substring(0, 300)}". Return JSON: {"titles":[{"title":"string","angle":"string"}]}`, 400)
+
+        claude(`You are a voice director for ${profile?.channel_name || 'a YouTube channel'}.
+Identify 1-3 distinct narrator voices needed for this script. Assign each paragraph a voice ID.
+Script: "${fullScript.substring(0, 2000)}"
+Return ONLY valid JSON:
+{"characters":[{"id":"v1","name":"string","role":"string","voiceStyle":"string","color":"#e03535"}],"segments":[{"id":"seg-0","voiceId":"v1","text":"full paragraph text"}]}`, 800, 'haiku')
+          .then(raw => {
+            const p = extractJSON(raw);
+            if (p?.segments && p?.characters) {
+              voiceSegments = { segments: p.segments, voices: p.characters.map(c => ({ ...c, cartesiaVoiceId: null })) };
+            }
+            setOsStep('voices', 'done');
+          }).catch(() => setOsStep('voices', 'done')),
+
+        claude(`Generate 4 image prompts for key visual moments. Topic: ${oneShotTopic}. Script: "${fullScript.substring(0, 1500)}". Style: cinematic, no text.
+Return ONLY valid JSON:
+{"prompts":[{"prompt":"full Midjourney prompt","why":"why needed here","mood":"tense","imageNumber":1,"segmentIndex":0,"reasons":["Scene Change"]}]}`, 800, 'haiku')
+          .then(raw => {
+            const p = extractJSON(raw);
+            if (p?.prompts) imagePrompts = p.prompts;
+            setOsStep('images', 'done');
+          }).catch(() => setOsStep('images', 'done')),
+
+        claude(`You are a YouTube SEO strategist for ${profile?.channel_name || 'a YouTube channel'}.
+Generate upload metadata for this video.
+Topic: ${oneShotTopic}
+Video duration: ${totalMins}
+Script excerpt: "${fullScript.substring(0, 2000)}"
+Return ONLY valid JSON:
+{"titles":[{"option":"A","text":"title 1","angle":"why"},{"option":"B","text":"title 2","angle":"why"},{"option":"C","text":"title 3","angle":"why"}],"description":"3-4 paragraphs","tags":["tag1"],"category":"Education","chapters":[{"time":"0:00","title":"Intro"}]}`, 1500, 'haiku')
+          .then(raw => {
+            const p = extractJSON(raw);
+            if (p?.titles) metaResult = p;
+            setOsStep('metadata', 'done');
+          }).catch(() => setOsStep('metadata', 'done')),
+
+        claude(`Generate 3 YouTube titles. Topic: ${oneShotTopic}. Script: "${fullScript.substring(0, 300)}". Return JSON: {"titles":[{"title":"string","angle":"string"}]}`, 300, 'haiku')
           .then(() => setOsStep('titles', 'done')).catch(() => setOsStep('titles', 'done')),
-        claude(`Identify 1-3 voices in this script. Script: "${fullScript.substring(0, 1500)}". Return JSON: {"characters":[{"name":"string","role":"string","voiceStyle":"string","sampleLine":"string"}]}`, 400)
-          .then(() => setOsStep('voices', 'done')).catch(() => setOsStep('voices', 'done')),
-        claude(`Generate 4 Midjourney prompts for key scenes. Topic: ${oneShotTopic}. Script: "${fullScript.substring(0, 1500)}". Return JSON: {"prompts":[{"scene":"string","prompt":"string"}]}`, 600)
-          .then(() => setOsStep('images', 'done')).catch(() => setOsStep('images', 'done')),
       ]);
 
-      // Load into pipeline
+      // Load into pipeline — stages 0, 1, 2, 4, 7 populated; stage 3 (sound) deferred
       const newStageData = {
         0: { topic: oneShotTopic, context: oneShotCtx, research, researchText },
         1: { topic: oneShotTopic, ctx: oneShotCtx, script: fullScript, analysis },
+        ...(voiceSegments ? { 2: voiceSegments } : {}),
+        ...(imagePrompts ? { 4: { prompts: imagePrompts, images: {}, mode: 'manual' } } : {}),
+        ...(metaResult ? { 7: { meta: metaResult } } : {}),
       };
+      const completedSet = new Set([0, 1, ...(voiceSegments ? [2] : []), ...(imagePrompts ? [4] : []), ...(metaResult ? [7] : [])]);
       setStageData(newStageData);
-      setCompletedStages(new Set([0, 1]));
-      setActiveStage(2);
+      setCompletedStages(completedSet);
+      setActiveStage(3); // Land on Sound stage — the deferred one
       setOneShotDone(true);
 
       // Create episode
       try {
         const ep = await createEpisode({
-          active_stage: 2,
-          completed_stages: [0, 1],
+          active_stage: 3,
+          completed_stages: [...completedSet],
           stage_data: newStageData,
           title: oneShotTopic,
           status: 'draft',
@@ -581,7 +624,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                   <div style={{ fontSize: '24px', color: '#4ade80', marginBottom: '12px' }}>✓</div>
                   <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>Research &amp; script loaded</div>
-                  <div style={{ fontSize: '13px', color: '#555', marginBottom: '24px' }}>"{oneShotTopic}" is ready. You're now on Stage 3 — Narration.</div>
+                  <div style={{ fontSize: '13px', color: '#555', marginBottom: '24px' }}>"{oneShotTopic}" is ready. Research, script, narration, visuals, and metadata are done. Only Sound Design remains.</div>
                   <button onClick={() => setShowOneShot(false)} style={{ background: ACCENT, color: '#fff', border: 'none', borderRadius: '8px', padding: '11px 24px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}>
                     Continue in pipeline →
                   </button>

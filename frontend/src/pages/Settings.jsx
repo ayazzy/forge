@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
-import { saveChannelProfile, getChannelProfile, getUsage, getBilling, createPortalSession, deleteAccount, generateChannelTemplate } from "../lib/api";
+import { saveChannelProfile, getChannelProfile, getBilling, createPortalSession, deleteAccount, generateChannelTemplate } from "../lib/api";
 import AppLayout from "../components/ui/AppLayout";
 
 const ACCENT = "#e03535";
@@ -53,9 +53,7 @@ export default function Settings() {
   const [notifs, setNotifs] = useState(loadNotifs);
   const [savedNotifs, setSavedNotifs] = useState(false);
 
-  // Usage / Billing
-  const [usage, setUsage] = useState(null);
-  const [loadingUsage, setLoadingUsage] = useState(true);
+  // Billing
   const [billing, setBilling] = useState(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -82,7 +80,6 @@ export default function Settings() {
       }
     }).catch(() => {});
     getBilling().then(setBilling).catch(() => {});
-    getUsage().then(setUsage).catch(() => {}).finally(() => setLoadingUsage(false));
   }, []);
 
   const handleSaveChannel = async () => {
@@ -379,38 +376,6 @@ export default function Settings() {
                   </div>
                 )}
 
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: "16px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#999", textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: "12px" }}>
-                    Usage this month
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {[
-                      { label: "AI Calls",          key: "claude_calls",           limitKey: "claude_calls" },
-                      { label: "Voice Characters",   key: "elevenlabs_characters",  limitKey: "elevenlabs_characters" },
-                      { label: "Image Generations",  key: "ideogram_generations",   limitKey: "ideogram_generations" },
-                    ].map(m => {
-                      const FALLBACK = { claude_calls: 300, elevenlabs_characters: 75000, ideogram_generations: 50 };
-                      const used = usage?.[m.key] || 0;
-                      const limit = usage?.limits?.[m.limitKey] || FALLBACK[m.limitKey];
-                      const pct = Math.min((used / limit) * 100, 100);
-                      const barColor = pct > 90 ? "#e03535" : pct > 70 ? "#d97706" : "#e03535";
-                      return (
-                        <div key={m.label}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
-                            <span style={{ fontSize: "13px", color: "#ccc", fontWeight: "500" }}>{m.label}</span>
-                            <span style={{ fontSize: "12px", color: loadingUsage ? "#333" : pct > 90 ? "#e03535" : "#777" }}>
-                              {loadingUsage ? "—" : `${used.toLocaleString()} / ${limit.toLocaleString()}`}
-                            </span>
-                          </div>
-                          <div style={{ height: "4px", background: "#252525", borderRadius: "4px", overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: loadingUsage ? "0%" : `${pct}%`, background: barColor, borderRadius: "4px", transition: "width 0.5s ease" }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#555", marginTop: "12px" }}>Resets on the 1st of each month.</div>
-                </div>
               </Section>
             </div>
 

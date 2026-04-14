@@ -11,6 +11,22 @@ function Stage0({ onApprove, saved, data, isComplete, onBackToSummary }) {
     if (data?.topicPrefill && !saved?.topic) {
       setTopic(data.topicPrefill);
     }
+    // Consume trend context from sessionStorage (set by Trends page)
+    if (!saved?.context) {
+      try {
+        const raw = sessionStorage.getItem('forge_trend_context');
+        if (raw) {
+          const trendCtx = JSON.parse(raw);
+          const parts = [];
+          if (trendCtx.competition) parts.push(`Competition: ${trendCtx.competition}`);
+          if (trendCtx.angle) parts.push(`Suggested angle: ${trendCtx.angle}`);
+          if (trendCtx.ratio) parts.push(`Evidence ratio: ${trendCtx.ratio}x`);
+          if (trendCtx.whyItWorks) parts.push(`Why it works: ${trendCtx.whyItWorks}`);
+          if (parts.length > 0) setContext(parts.join(' · '));
+          sessionStorage.removeItem('forge_trend_context');
+        }
+      } catch {}
+    }
   }, [data?.topicPrefill]);
   const [research, setResearch] = useState(saved?.research || null);
   const [loading, setLoading] = useState(false);

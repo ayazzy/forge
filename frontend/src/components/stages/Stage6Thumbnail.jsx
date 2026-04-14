@@ -5,13 +5,15 @@ import { extractJSON } from "../../lib/parseJSON";
 
 function Stage5({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const research = data.research;
+  // Use pre-generated thumbnail concepts from Stage4 if available
+  const prefilled = data.thumbnailConcepts || null;
   const [form, setForm] = useState({
     title: saved?.title || (data.topic && !data.topic.startsWith("TOPIC:") ? data.topic : research?.characterProfile?.name ? `The ${research.characterProfile.role}: ${research.characterProfile.name}` : data.topic?.split("\n")[0]?.replace(/^TOPIC:\s*/i, "") || ""),
     subject: saved?.subject || (research ? `${research.characterProfile?.name}, ${research.characterProfile?.role}` : ""),
     moment: saved?.moment || research?.characterProfile?.arc?.split(".")[0] || "",
     period: saved?.period || data.era || "",
   });
-  const [concepts, setConcepts] = useState(saved?.concepts || null);
+  const [concepts, setConcepts] = useState(saved?.concepts || prefilled || null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(null);
 
@@ -64,8 +66,13 @@ Return ONLY valid JSON:
             </div>
           ))}
           <button style={S.btnPrimary(loading || !form.subject)} onClick={generate} disabled={loading || !form.subject}>
-            {loading ? "Generating…" : "Generate Concepts"}
+            {loading ? "Generating…" : concepts ? "Regenerate" : "Generate Concepts"}
           </button>
+          {prefilled && concepts === prefilled && (
+            <div style={{ fontSize: '11px', color: COLORS.textTertiary, fontStyle: 'italic', marginTop: '4px' }}>
+              Pre-generated from Visuals stage
+            </div>
+          )}
         </div>
 
         {/* Right: concepts */}

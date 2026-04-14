@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Pipeline from "./pages/Pipeline";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -15,9 +15,6 @@ import ProtectedRoute from "./components/ui/ProtectedRoute";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
 import Onboarding from "./pages/Onboarding";
 import Stats from "./pages/Stats";
-import Episodes from "./pages/Episodes";
-import SavedTopics from "./pages/SavedTopics";
-import Calendar from "./pages/Calendar";
 
 export default function App() {
   return (
@@ -37,9 +34,9 @@ export default function App() {
         <Route path="/settings" element={<ProtectedRoute requiresPlan><Settings /></ProtectedRoute>} />
         <Route path="/trends" element={<ProtectedRoute requiresPlan><Trends /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute requiresPlan><Stats /></ProtectedRoute>} />
-        <Route path="/episodes" element={<ProtectedRoute requiresPlan><Episodes /></ProtectedRoute>} />
-        <Route path="/saved-topics" element={<ProtectedRoute requiresPlan><SavedTopics /></ProtectedRoute>} />
-        <Route path="/calendar" element={<ProtectedRoute requiresPlan><Calendar /></ProtectedRoute>} />
+        <Route path="/episodes" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/saved-topics" element={<Navigate to="/trends" replace />} />
+        <Route path="/calendar" element={<Navigate to="/stats" replace />} />
       </Routes>
     </ErrorBoundary>
   );

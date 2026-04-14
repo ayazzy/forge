@@ -159,7 +159,47 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Empty state — shown when user has no episodes yet */}
+        {episodes.length === 0 && (
+          <div style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '40px 36px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '520px' }}>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>Your channel template is ready</div>
+                <div style={{ fontSize: '14px', color: '#aaa', lineHeight: '1.7' }}>
+                  Forge has built a production template tuned to your channel. Start your first episode to put it to work — research, script, voice, visuals, and metadata in one pipeline.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <Link to="/pipeline" style={{
+                  background: ACCENT, color: '#fff', padding: '11px 28px',
+                  borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: '700',
+                }}>
+                  Start your first episode →
+                </Link>
+                <Link to="/trends" style={{
+                  background: '#222', color: '#ccc', padding: '11px 20px',
+                  borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: '500',
+                  border: '1px solid #333',
+                }}>
+                  Browse trending topics
+                </Link>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['Research', 'Script', 'Voice', 'Visuals', 'Sound', 'Assembly', 'Thumbnail', 'Metadata'].map((stage, i) => (
+                  <span key={i} style={{
+                    fontSize: '11px', color: '#666', background: '#222',
+                    border: '1px solid #2a2a2a', borderRadius: '6px', padding: '4px 10px',
+                  }}>
+                    {stage}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Row */}
+        {episodes.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
           {[
             {
@@ -196,6 +236,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+        )}
 
         {/* Channel stats */}
         {channelStats && (
