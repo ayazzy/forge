@@ -213,26 +213,30 @@ export async function handleWebhook(req, res) {
           const sub = await stripe.subscriptions.retrieve(session.subscription);
           let userId = sub.metadata?.supabase_user_id;
           const plan = sub.metadata?.plan || 'creator';
+          console.log('[webhook] checkout.session.completed — sub metadata:', sub.metadata, 'customer:', session.customer);
 
           // Fallback 1: look up profile by stripe_customer_id
           if (!userId) {
-            const { data: profile } = await supabase
+            const { data: profile, error: profileErr } = await supabase
               .from('profiles')
               .select('id')
               .eq('stripe_customer_id', session.customer)
               .single();
+            console.log('[webhook] customer_id lookup:', profile, profileErr);
             userId = profile?.id;
           }
 
           // Fallback 2: look up user by email
           if (!userId && session.customer_details?.email) {
-            const { data: { users } } = await supabase.auth.admin.listUsers();
+            const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers();
+            console.log('[webhook] email lookup for:', session.customer_details.email, 'users count:', users?.length, 'err:', usersErr);
             const match = users?.find(u => u.email === session.customer_details.email);
             userId = match?.id;
           }
 
+          console.log('[webhook] final userId:', userId, 'plan:', plan);
           if (userId) {
-            await supabase.from('profiles').update({
+            const { error: updateErr } = await supabase.from('profiles').update({
               stripe_customer_id: session.customer,
               plan,
               subscription_status: sub.status,
@@ -240,6 +244,7 @@ export async function handleWebhook(req, res) {
               monthly_episodes_used: 0,
               monthly_reset_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             }).eq('id', userId);
+            console.log('[webhook] update result:', updateErr);
           }
         }
         break;
