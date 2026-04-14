@@ -11,7 +11,6 @@ import usageRoute from './routes/usage.js';
 import channelRoute from './routes/channel.js';
 import trendsRoute from './routes/trends.js';
 import savedTopicsRoute from './routes/savedTopics.js';
-import claudeGuestRoute from './routes/claudeGuest.js';
 import claudeStreamRoute from './routes/claudeStream.js';
 import stripeRoute, { handleWebhook } from './routes/stripe.js';
 import accountRoute from './routes/account.js';
@@ -47,7 +46,6 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handl
 
 app.use(express.json({ limit: '50mb' }));
 
-app.use('/api/claude/guest', claudeGuestRoute);
 // 1.2 — Per-user rate limiting on all AI routes
 app.use('/api/claude/stream', requireAuth, claudeRateLimiter, claudeStreamRoute);
 app.use('/api/claude', requireAuth, claudeRateLimiter, claudeRoute);

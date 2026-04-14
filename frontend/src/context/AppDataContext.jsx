@@ -31,7 +31,7 @@ export function AppDataProvider({ children }) {
           setPlanLabel(name ? `${name.charAt(0).toUpperCase() + name.slice(1)} plan` : 'Active plan');
         } else {
           setHasPlan(false);
-          setPlanLabel(null);
+          setPlanLabel(billingData?.free_episode_used === false ? 'Free episode' : null);
         }
         setBilling(billingData);
       } else {
@@ -75,7 +75,7 @@ export function AppDataProvider({ children }) {
         setPlanLabel(name ? `${name.charAt(0).toUpperCase() + name.slice(1)} plan` : 'Active plan');
       } else {
         setHasPlan(false);
-        setPlanLabel(null);
+        setPlanLabel(data?.free_episode_used === false ? 'Free episode' : null);
       }
       setBilling(data);
     }

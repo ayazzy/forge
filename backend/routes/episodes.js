@@ -1,3 +1,6 @@
+// SQL to run in Supabase SQL editor (free episode tracking):
+// ALTER TABLE profiles ADD COLUMN IF NOT EXISTS free_episode_used BOOLEAN DEFAULT FALSE;
+
 // SQL to run in Supabase SQL editor (1.7 — atomic credit deduction):
 // CREATE OR REPLACE FUNCTION deduct_episode_credit(p_user_id UUID)
 // RETURNS JSON AS $$
@@ -68,9 +71,48 @@ router.get('/:id', async (req, res) => {
   res.json(data);
 });
 
-// Create episode — atomically deducts episode credit (1.7 — race condition fix)
+// Create episode — free episode path or atomically deducts episode credit
 router.post('/', async (req, res) => {
-  // Atomic check-and-deduct via Supabase RPC (prevents race condition with concurrent requests)
+  // Fetch profile to check free episode status and plan
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('plan, subscription_status, free_episode_used')
+    .eq('id', req.user.id)
+    .single();
+
+  if (profileError) {
+    console.error('[episodes] profile fetch error:', profileError);
+    return res.status(500).json({ error: safeError(profileError) });
+  }
+
+  const hasActivePlan = profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing';
+
+  // Free episode path — for users with no active subscription
+  if (!hasActivePlan) {
+    if (profile?.free_episode_used === false || profile?.free_episode_used == null) {
+      // Allow the episode creation — this is their one free episode
+      const safeBody = pick(req.body, ALLOWED_INSERT_FIELDS);
+      const { data, error } = await supabase
+        .from('episodes')
+        .insert({ ...safeBody, user_id: req.user.id })
+        .select()
+        .single();
+      if (error) return res.status(500).json({ error: safeError(error) });
+
+      // Mark free episode as used
+      await supabase.from('profiles').update({ free_episode_used: true }).eq('id', req.user.id);
+
+      return res.json(data);
+    } else {
+      // Free episode already used — redirect to pricing
+      return res.status(403).json({
+        error: 'Your free episode has been used. Pick a plan to continue.',
+        code: 'FREE_EPISODE_USED',
+      });
+    }
+  }
+
+  // Paid plan path — atomic check-and-deduct via Supabase RPC
   const { data: creditResult, error: creditError } = await supabase
     .rpc('deduct_episode_credit', { p_user_id: req.user.id });
 

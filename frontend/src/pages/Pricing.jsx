@@ -14,7 +14,7 @@ const plans = [
     period: "/mo",
     episodes: 5,
     features: ["5 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research"],
-    cta: "Start free trial",
+    cta: "Subscribe now",
   },
   {
     id: "studio",
@@ -24,7 +24,7 @@ const plans = [
     episodes: 11,
     features: ["11 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support"],
     oneShot: true,
-    cta: "Start free trial",
+    cta: "Subscribe now",
     highlight: true,
   },
   {
@@ -35,7 +35,7 @@ const plans = [
     episodes: 30,
     features: ["30 episodes/month", "Full 8-stage pipeline", "Hosted APIs — no keys needed", "Trend research", "Priority support", "Multiple channels (coming soon)"],
     oneShot: true,
-    cta: "Start free trial",
+    cta: "Subscribe now",
   },
 ];
 
@@ -48,7 +48,7 @@ const packs = [
 
 const REASON_MESSAGES = {
   canceled: "Your subscription has ended. Resubscribe below to continue making videos.",
-  trial_ended: "Your 7-day trial has ended. Choose a plan to keep access to Forge.",
+  free_used: "You've made your first episode with Forge. Pick a plan to keep creating.",
   no_plan: "You need an active plan to use Forge. Get started below.",
 };
 
@@ -101,7 +101,7 @@ export default function Pricing() {
     <AppLayout>
       <div style={{ padding: "32px 40px", maxWidth: "960px", margin: "0 auto", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Pricing</div>
-        <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "32px" }}>7-day free trial on all plans. No credit card required to start.</div>
+        <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "32px" }}>Your first episode is on us. Subscribe to keep creating.</div>
 
         {reason && REASON_MESSAGES[reason] && !reasonBannerDismissed && (
           <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "8px", padding: "12px 16px", fontSize: "13px", color: "#e03535", marginBottom: "20px", maxWidth: "860px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -205,7 +205,7 @@ export default function Pricing() {
         </div>}
 
         <div style={{ marginTop: "24px", fontSize: "13px", color: "#777", maxWidth: "860px" }}>
-          Trial ends after 7 days. Cancel anytime from Settings before being charged.
+          Cancel anytime from Settings.
         </div>
       </div>
     </AppLayout>

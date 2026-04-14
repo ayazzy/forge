@@ -279,11 +279,6 @@ function NavLink({ href, children }) {
 
 const NICHES = ['History','Finance','True Crime','Health','Tech Reviews','Travel','Documentary','Science','Sports'];
 
-const TESTIMONIALS = [
-  { quote:"I went from 8 hours per video to a complete production package in one sitting. Script, audio, images — everything in one place.", name:'Marcus T.', channel:'History · 42K subs' },
-  { quote:"The trend research changed my strategy. I found a topic perfectly sized for my channel and it became my highest-viewed video.", name:'Sarah K.', channel:'Finance · 28K subs' },
-  { quote:"My channel sounds like it has a full production team. The voiceover quality matched exactly to my channel style is genuinely impressive.", name:'James R.', channel:'True crime · 67K subs' },
-];
 
 const FEATURES = [
   { title:'⚡ One Shot Mode', desc:'Type a topic — Forge runs research, script, titles, voice cast, and image prompts in one automated run. No clicks between stages.', highlight: true },
@@ -341,12 +336,6 @@ export default function Landing() {
           box-shadow: 0 16px 40px rgba(0,0,0,0.1) !important;
         }
 
-        .t-card {
-          transition: border-color 0.2s;
-        }
-        .t-card:hover {
-          border-color: rgba(224,53,53,0.28) !important;
-        }
 
         @keyframes pulse-ring {
           0%   { box-shadow: 0 0 0 0 rgba(224,53,53,0.45); }
@@ -379,8 +368,8 @@ export default function Landing() {
           <NavLink href="#trends">Trends</NavLink>
           <NavLink href="#pricing">Pricing</NavLink>
           <Link to="/login" style={{ fontSize:'14px',color:C.textSub }}>Sign in</Link>
-          <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'700',boxShadow:'0 4px 16px rgba(224,53,53,0.35)' }}>
-            Try it free →
+          <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'700',boxShadow:'0 4px 16px rgba(224,53,53,0.35)' }}>
+            Make your first episode free →
           </Link>
         </div>
       </nav>
@@ -410,8 +399,8 @@ export default function Landing() {
             </p>
 
             <div style={{ display:'flex',gap:'12px',alignItems:'center',marginBottom:'36px' }}>
-              <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.28)' }}>
-                Try it free →
+              <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.28)' }}>
+                Make your first episode free →
               </Link>
               <a href="#how-it-works" className="btn-outline" style={{ color:C.textSub,padding:'13px 22px',borderRadius:'10px',fontSize:'15px',border:`1px solid ${C.border}`,background:'transparent' }}>
                 See how it works
@@ -626,7 +615,7 @@ export default function Landing() {
         <div style={{ maxWidth:'960px',margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4, 1fr)' }}>
           {[
             { stat:'< 2 hrs', label:'From blank page to complete production package' },
-            { stat:'14.2x',   label:'Average ratio on AI-discovered topics in your niche' },
+            { stat:'Real data', label:'YouTube data powering every topic suggestion in your niche' },
             { stat:'8 stages',label:'Research through metadata — zero tool switching' },
             { stat:'1 pipeline',label:'Script, audio, images, sound, thumbnail, metadata' },
           ].map((s,i) => (
@@ -739,26 +728,33 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* What Forge produces */}
       <section style={{ padding:'80px 48px',background:C.bg,borderTop:`1px solid ${C.border}` }}>
-        <div style={{ maxWidth:'1000px',margin:'0 auto' }}>
-          <div style={{ textAlign:'center',marginBottom:'48px' }}>
-            <h2 style={{ fontSize:'34px',fontWeight:'800',color:C.text,letterSpacing:'-1px' }}>Creators love it</h2>
-          </div>
-          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px' }}>
-            {TESTIMONIALS.map((t,i) => (
-              <div key={i} className="t-card" style={{ background:C.bg,border:`1px solid ${C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize:'15px',color:C.textSub,lineHeight:'1.8',marginBottom:'20px',fontStyle:'italic' }}>"{t.quote}"</div>
-                <div style={{ display:'flex',alignItems:'center',gap:'10px' }}>
-                  <div style={{ width:'32px',height:'32px',borderRadius:'50%',flexShrink:0,background:C.redSoft,border:`1px solid ${C.redMid}`,display:'flex',alignItems:'center',justifyContent:'center' }}>
-                    <span style={{ fontSize:'12px',color:C.red,fontWeight:'700' }}>{t.name[0]}</span>
+        <div style={{ maxWidth:'960px',margin:'0 auto' }}>
+          <AnimateIn style={{ textAlign:'center',marginBottom:'48px' }}>
+            <h2 style={{ fontSize:'34px',fontWeight:'800',color:C.text,letterSpacing:'-1px',marginBottom:'12px' }}>What one episode produces</h2>
+            <p style={{ fontSize:'15px',color:C.textSub,maxWidth:'440px',margin:'0 auto',lineHeight:'1.7' }}>
+              Every stage outputs something real. Run the pipeline once — walk away with a complete production package.
+            </p>
+          </AnimateIn>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'12px' }}>
+            {[
+              { label:'Research brief', detail:'Topic validated against real YouTube data. Competitive intel, key facts, angles to explore.' },
+              { label:'Full script', detail:'Narration with hook scoring across 5 dimensions and retention drop-off risk flags.' },
+              { label:'Voice cast', detail:'AI voices assigned per character. Download a numbered MP3 package in one click.' },
+              { label:'Image prompts', detail:'Midjourney-ready prompts at every mood shift — matched to your channel visual style.' },
+              { label:'Sound design', detail:'Music cues, ambient shifts, and timestamped SFX placements from your script.' },
+              { label:'Metadata', detail:'3 title options, full description, searchable tags, and chapter timestamps.' },
+            ].map((item, i) => (
+              <AnimateIn key={i} delay={i * 60}>
+                <div className="card-lift" style={{ background:C.bg,border:`1px solid ${C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)',minHeight:'140px' }}>
+                  <div style={{ width:'24px',height:'24px',borderRadius:'6px',background:C.redSoft,border:`1px solid ${C.redMid}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'12px' }}>
+                    <span style={{ fontSize:'9px',fontWeight:'800',color:C.red }}>{String(i+1).padStart(2,'0')}</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize:'13px',color:C.text,fontWeight:'600' }}>{t.name}</div>
-                    <div style={{ fontSize:'11px',color:C.textMuted }}>{t.channel}</div>
-                  </div>
+                  <div style={{ fontSize:'13px',fontWeight:'700',color:C.text,marginBottom:'6px' }}>{item.label}</div>
+                  <div style={{ fontSize:'12px',color:C.textSub,lineHeight:'1.65' }}>{item.detail}</div>
                 </div>
-              </div>
+              </AnimateIn>
             ))}
           </div>
         </div>
@@ -769,13 +765,13 @@ export default function Landing() {
         <div style={{ maxWidth:'960px',margin:'0 auto' }}>
           <AnimateIn style={{ textAlign:'center',marginBottom:'48px' }}>
             <h2 style={{ fontSize:'38px',fontWeight:'800',color:C.text,marginBottom:'12px',letterSpacing:'-1px' }}>Simple pricing</h2>
-            <p style={{ fontSize:'15px',color:C.textSub }}>7-day free trial on all plans. No credit card required to start.</p>
+            <p style={{ fontSize:'15px',color:C.textSub }}>Your first episode is free. No credit card required to start.</p>
           </AnimateIn>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px',alignItems:'stretch' }}>
             {[
-              { name:'Creator',price:'$49',period:'/mo',desc:'For creators getting started',features:['5 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research'],cta:'Start free trial →',highlighted:false },
-              { name:'Studio',price:'$99',period:'/mo',desc:'For serious creators',features:['11 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Start free trial →',highlighted:true },
-              { name:'Pro',price:'$179',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Start free trial →',highlighted:false },
+              { name:'Creator',price:'$49',period:'/mo',desc:'For creators getting started',features:['5 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research'],cta:'Get started →',highlighted:false },
+              { name:'Studio',price:'$99',period:'/mo',desc:'For serious creators',features:['11 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Get started →',highlighted:true },
+              { name:'Pro',price:'$179',period:'/mo',desc:'For daily creators',features:['30 episodes/month','Full 8-stage pipeline','Hosted AI — no keys needed','Trend research','Priority support'],oneShot:true,cta:'Get started →',highlighted:false },
             ].map((plan,i) => (
               <AnimateIn key={i} delay={i * 80}>
               <div className="pricing-card" style={{ background:C.bg,border:`1px solid ${plan.highlighted?C.red:C.border}`,borderRadius:'12px',padding:'32px 28px',position:'relative',boxShadow:plan.highlighted?'0 8px 32px rgba(224,53,53,0.1)':'0 1px 4px rgba(0,0,0,0.04)',display:'flex',flexDirection:'column',height:'100%' }}>
@@ -804,7 +800,7 @@ export default function Landing() {
                     </div>
                   ))}
                 </div>
-                <Link to="/try" className={plan.highlighted?'btn-red':'btn-outline'} style={{ display:'block',textAlign:'center',background:plan.highlighted?C.red:'transparent',color:plan.highlighted?'#fff':C.textSub,padding:'12px 20px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',border:plan.highlighted?'none':`1px solid ${C.border}`,boxShadow:plan.highlighted?'0 4px 14px rgba(224,53,53,0.22)':'none' }}>
+                <Link to="/signup" className={plan.highlighted?'btn-red':'btn-outline'} style={{ display:'block',textAlign:'center',background:plan.highlighted?C.red:'transparent',color:plan.highlighted?'#fff':C.textSub,padding:'12px 20px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',border:plan.highlighted?'none':`1px solid ${C.border}`,boxShadow:plan.highlighted?'0 4px 14px rgba(224,53,53,0.22)':'none' }}>
                   {plan.cta}
                 </Link>
               </div>
@@ -821,11 +817,11 @@ export default function Landing() {
           <p style={{ fontSize:'16px',color:C.textSub,marginBottom:'32px',lineHeight:'1.7' }}>
             Stop switching tools. Stop losing hours. One pipeline, every stage, built around your channel.
           </p>
-          <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'14px 40px',borderRadius:'10px',fontSize:'16px',fontWeight:'700',boxShadow:'0 6px 24px rgba(224,53,53,0.28)' }}>
-            Try it free →
+          <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'14px 40px',borderRadius:'10px',fontSize:'16px',fontWeight:'700',boxShadow:'0 6px 24px rgba(224,53,53,0.28)' }}>
+            Make your first episode free →
           </Link>
           <div style={{ marginTop:'14px',fontSize:'12px',color:C.textMuted }}>
-            Set up in under 2 minutes · No credit card required to explore
+            Set up in under 2 minutes · No credit card required
           </div>
         </div>
       </section>

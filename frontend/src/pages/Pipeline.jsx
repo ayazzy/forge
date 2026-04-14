@@ -4,7 +4,6 @@ import { useAuth } from "../hooks/useAuth";
 import { useChannelProfile } from "../hooks/useChannelProfile";
 import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets, getBilling, claude, claudeStream } from "../lib/api";
 import { extractJSON } from "../lib/parseJSON";
-import { loadGuestSession, clearGuestSession } from "./TryPipeline";
 import { invalidateBillingCache } from "../components/ui/ProtectedRoute";
 import { analyzeScript } from "../lib/analysis";
 import ErrorBoundary from "../components/ui/ErrorBoundary";
@@ -47,7 +46,6 @@ export default function Pipeline() {
   const [persistedAssets, setPersistedAssets] = useState({ audio: {}, images: {} });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
-  const [guestSession, setGuestSession] = useState(null);
   const [episodeLimitError, setEpisodeLimitError] = useState(false);
   const [billing, setBilling] = useState(null);
 
@@ -59,6 +57,9 @@ export default function Pipeline() {
   // 3.1 — localStorage backup for pipeline state (survives refresh before first DB save)
   const BACKUP_KEY = 'forge_pipeline_backup';
   const [backupPrompt, setBackupPrompt] = useState(null); // { stageData, activeStage, completedStages, timestamp }
+
+  // Credit confirmation — shown before first stage runs on a fresh episode
+  const [creditConfirmed, setCreditConfirmed] = useState(false);
 
   // 3.2 — Confirm modals
   const [newEpisodeConfirm, setNewEpisodeConfirm] = useState(false);
@@ -86,11 +87,6 @@ export default function Pipeline() {
     const topicFromUrl = searchParams.get('topic');
     if (topicFromUrl) {
       setStageData(prev => ({ ...prev, 0: { ...prev[0], topicPrefill: topicFromUrl } }));
-    }
-    // Check for guest session to restore
-    const guest = loadGuestSession();
-    if (guest?.stageData && Object.keys(guest.stageData).length > 0) {
-      setGuestSession(guest);
     }
     // 3.1 — Check for localStorage backup (unsaved work from before first DB save)
     try {
@@ -204,9 +200,10 @@ export default function Pipeline() {
             status: 'draft',
           });
           setCurrentEpisodeId(episode.id);
+          invalidateBillingCache();
           localStorage.removeItem(BACKUP_KEY); // 3.1 — clear backup once saved to DB
         } catch (e) {
-          if (e.message?.includes('Episode limit')) {
+          if (e.message?.includes('Episode limit') || e.message?.includes('free episode')) {
             setEpisodeLimitError(true);
           }
           throw e;
@@ -227,6 +224,7 @@ export default function Pipeline() {
     setCurrentEpisodeId(null);
     setPersistedAssets({ audio: {}, images: {} });
     setShowResetConfirm(false);
+    setCreditConfirmed(false);
     localStorage.removeItem(BACKUP_KEY); // 3.1 — clear backup on reset
   };
 
@@ -238,6 +236,7 @@ export default function Pipeline() {
     setCompletedStages(new Set(ep.completed_stages || []));
     setActiveStage(ep.active_stage || 0);
     setCurrentEpisodeId(ep.id);
+    setCreditConfirmed(true); // Loading an existing episode — no credit confirm needed
   };
 
   const handleDeleteEpisode = async (id) => {
@@ -305,6 +304,7 @@ export default function Pipeline() {
   const runOneShot = async () => {
     if (!oneShotTopic.trim() || oneShotRunning) return;
     setOneShotRunning(true);
+    setCreditConfirmed(true); // One Shot creates an episode — mark as confirmed
     setOneShotScript('');
     setOneShotSteps({});
 
@@ -385,7 +385,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         setCurrentEpisodeId(ep.id);
         await loadEpisodes();
       } catch (e) {
-        if (e.message?.includes('Episode limit')) setEpisodeLimitError(true);
+        if (e.message?.includes('Episode limit') || e.message?.includes('free episode')) setEpisodeLimitError(true);
       }
     } catch (e) {
       console.error('One-shot error:', e);
@@ -427,6 +427,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
               setStageData(backupPrompt.stageData);
               setCompletedStages(new Set(backupPrompt.completedStages || []));
               setActiveStage(backupPrompt.activeStage || 0);
+              setCreditConfirmed(true);
               setBackupPrompt(null);
             }}
             style={{ background: '#0ea5e9', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -681,33 +682,6 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         </div>
       )}
 
-      {/* Guest session restore banner */}
-      {guestSession && (
-        <div style={{ background: '#0a2a1a', border: '1px solid #14532d', borderBottom: '1px solid #14532d', padding: '10px 32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '12px', color: '#4ade80', flex: 1 }}>
-            You have a saved trial session: <strong>{guestSession.stageData[0]?.topic || 'untitled topic'}</strong> — Research + Script complete
-          </span>
-          <button
-            onClick={() => {
-              setStageData(guestSession.stageData);
-              setCompletedStages(new Set(Object.keys(guestSession.stageData).map(Number)));
-              setActiveStage(Object.keys(guestSession.stageData).length);
-              clearGuestSession();
-              setGuestSession(null);
-            }}
-            style={{ background: '#4ade80', color: '#000', border: 'none', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-          >
-            Load it →
-          </button>
-          <button
-            onClick={() => { clearGuestSession(); setGuestSession(null); }}
-            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '14px', padding: '4px', fontFamily: 'inherit' }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
       <StageBar
         STAGES={STAGES}
         activeStage={activeStage}
@@ -748,6 +722,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
 
       <div style={{ ...S.content, maxWidth: 'none', width: '100%' }}>
         {isComplete && activeStage >= 8 ? (
+          /* Episode complete screen */
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center" }}>
             <div style={{ fontSize: "12px", color: COLORS.success, fontWeight: "600", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "16px" }}>Episode Complete</div>
             <div style={{ fontSize: "32px", fontWeight: "700", color: COLORS.text, marginBottom: "6px" }}>{mergedData.topic || "Your episode"}</div>
@@ -771,12 +746,92 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button style={S.btnSecondary(false)} onClick={() => setActiveStage(5)}>Assembly</button>
-              <button style={{ ...S.btnPrimary(false), padding: "11px 24px" }} onClick={() => setShowResetConfirm(true)}>
-                + Start New Episode
-              </button>
-            </div>
+
+            {/* Conversion CTA for free users, or normal next-episode button for paid users */}
+            {(() => {
+              const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
+              if (isActive) {
+                return (
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <button style={S.btnSecondary(false)} onClick={() => setActiveStage(5)}>Assembly</button>
+                    <button style={{ ...S.btnPrimary(false), padding: "11px 24px" }} onClick={() => setShowResetConfirm(true)}>
+                      + Start New Episode
+                    </button>
+                  </div>
+                );
+              }
+              // Free user — show upgrade section
+              const planOptions = [
+                { id: 'creator', name: 'Creator', price: '$49', episodes: 5 },
+                { id: 'studio', name: 'Studio', price: '$99', episodes: 11, popular: true },
+                { id: 'pro', name: 'Pro', price: '$179', episodes: 30 },
+              ];
+              return (
+                <div style={{ width: '100%', maxWidth: '600px', marginTop: '8px' }}>
+                  <div style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: '12px', padding: '20px 24px', marginBottom: '28px' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: COLORS.text, marginBottom: '6px' }}>Your first episode is complete.</div>
+                    <div style={{ fontSize: '14px', color: COLORS.textSecondary }}>Want to make your next one?</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                    {planOptions.map(plan => (
+                      <div key={plan.id} style={{ background: COLORS.surface, border: `1px solid ${plan.popular ? ACCENT : COLORS.border}`, borderRadius: '10px', padding: '20px 16px', textAlign: 'center', position: 'relative' }}>
+                        {plan.popular && (
+                          <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: ACCENT, color: '#fff', fontSize: '9px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px', whiteSpace: 'nowrap' }}>POPULAR</div>
+                        )}
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: COLORS.text, marginBottom: '4px' }}>{plan.name}</div>
+                        <div style={{ fontSize: '22px', fontWeight: '800', color: plan.popular ? ACCENT : COLORS.text, marginBottom: '4px' }}>{plan.price}<span style={{ fontSize: '12px', color: COLORS.textSecondary, fontWeight: '400' }}>/mo</span></div>
+                        <div style={{ fontSize: '11px', color: COLORS.textSecondary, marginBottom: '14px' }}>{plan.episodes} episodes/month</div>
+                        <button
+                          onClick={async () => {
+                            const { createCheckoutSession } = await import('../lib/api');
+                            try { const { url } = await createCheckoutSession(plan.id); window.location.href = url; } catch {}
+                          }}
+                          style={{ background: plan.popular ? ACCENT : '#222', color: '#fff', border: 'none', borderRadius: '7px', padding: '9px 0', width: '100%', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          Subscribe now →
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button style={S.btnSecondary(false)} onClick={() => setActiveStage(5)}>Review assembly</button>
+                </div>
+              );
+            })()}
+          </div>
+        ) : !creditConfirmed && !currentEpisodeId && Object.keys(stageData).length === 0 ? (
+          /* Credit confirmation gate — shown before first stage runs */
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center" }}>
+            {(() => {
+              const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
+              const freeEpisodeAvailable = !isActive && billing?.free_episode_used === false;
+              const totalRemaining = billing?.total_remaining ?? null;
+
+              return (
+                <>
+                  <div style={{ fontSize: '28px', marginBottom: '16px' }}>{freeEpisodeAvailable ? '🎬' : '◈'}</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: COLORS.text, marginBottom: '8px' }}>
+                    {freeEpisodeAvailable ? 'Your free episode' : 'Start a new episode'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: COLORS.textSecondary, maxWidth: '380px', lineHeight: '1.6', marginBottom: '8px' }}>
+                    {freeEpisodeAvailable
+                      ? 'This is your free episode. No charge — full pipeline, no limits.'
+                      : totalRemaining !== null
+                        ? `This will use 1 of your ${totalRemaining} remaining episode credit${totalRemaining !== 1 ? 's' : ''}.`
+                        : 'This will use 1 episode credit from your plan.'
+                    }
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#555', marginBottom: '28px' }}>
+                    Unlimited revisions within each episode. Credits cover the episode slot, not individual generations.
+                  </div>
+                  <button
+                    onClick={() => setCreditConfirmed(true)}
+                    style={{ background: ACCENT, color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 28px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {freeEpisodeAvailable ? 'Start my free episode →' : 'Start Episode →'}
+                  </button>
+                </>
+              );
+            })()}
           </div>
         ) : (
           <>

@@ -7,7 +7,6 @@ import Dashboard from "./pages/Dashboard";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import Trends from "./pages/Trends";
-import TryPipeline from "./pages/TryPipeline";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
@@ -25,7 +24,6 @@ export default function App() {
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/try" element={<TryPipeline />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/pricing" element={<Pricing />} />

@@ -63,7 +63,7 @@ router.get('/billing', async (req, res) => {
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('stripe_customer_id, plan, subscription_status, trial_ends_at, monthly_episodes_used, monthly_reset_at, episode_credits')
+      .select('stripe_customer_id, plan, subscription_status, trial_ends_at, monthly_episodes_used, monthly_reset_at, episode_credits, free_episode_used')
       .eq('id', req.user.id)
       .single();
 
@@ -97,6 +97,7 @@ router.get('/billing', async (req, res) => {
       monthly_remaining: monthlyRemaining,
       purchased_credits: purchasedCredits,
       total_remaining: monthlyRemaining + purchasedCredits,
+      free_episode_used: profile?.free_episode_used ?? false,
     });
   } catch (e) {
     console.error('Billing fetch error:', e);
@@ -119,7 +120,6 @@ router.post('/create-checkout-session', async (req, res) => {
       line_items: [{ price: planConfig.priceId, quantity: 1 }],
       mode: 'subscription',
       subscription_data: {
-        trial_period_days: 7,
         metadata: { supabase_user_id: req.user.id, plan },
       },
       success_url: `${APP_URL}/dashboard?subscription=success`,

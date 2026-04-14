@@ -107,13 +107,18 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
   if (requiresPlan) {
     const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
     if (!isActive) {
-      let reason = 'no_plan';
-      if (billing?.subscription_status === 'canceled') {
-        reason = 'canceled';
-      } else if (billing?.subscription_status === 'trialing' && billing?.trial_ends_at && new Date(billing.trial_ends_at) < new Date()) {
-        reason = 'trial_ended';
+      // Free users who haven't used their free episode yet get access
+      if (billing?.free_episode_used === false) {
+        // fall through to allow access
+      } else {
+        let reason = 'no_plan';
+        if (billing?.subscription_status === 'canceled') {
+          reason = 'canceled';
+        } else if (billing?.free_episode_used === true) {
+          reason = 'free_used';
+        }
+        return <Navigate to={`/pricing?reason=${reason}`} replace />;
       }
-      return <Navigate to={`/pricing?reason=${reason}`} replace />;
     }
 
     // 2.4 — Redirect to onboarding if no channel profile (and not on exempt paths)

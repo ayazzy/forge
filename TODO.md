@@ -2,7 +2,7 @@
 
 ## High Impact — Core Product Gaps
 
-- [ ] **Existing channel onboarding** — Most signups will be active creators, not beginners. Onboarding should let them paste their channel URL and auto-import: niche, tone, average video length, and top-performing topics. Pre-populate the channel template instead of asking them to describe their own channel from scratch.
+- [x] **Existing channel onboarding** — Most signups will be active creators, not beginners. Onboarding should let them paste their channel URL and auto-import: niche, tone, average video length, and top-performing topics. Pre-populate the channel template instead of asking them to describe their own channel from scratch.
 - [ ] **Connect your channel (YouTube OAuth)** — Let creators link their YouTube account so Forge can track how videos made in Forge perform after publishing. Views, CTR, retention curve, watch time. This is the data flywheel that makes the channel template improve over time.
 - [ ] **YouTube Analytics integration** — Connect via YouTube Data API so creators see actual performance of videos made with Forge. Close the loop.
 - [ ] **Stage versioning** — Script edits are destructive. Add simple version history per stage (last 3 outputs) to remove regeneration anxiety.
@@ -22,7 +22,7 @@
 - [ ] **Switch ElevenLabs → Cartesia TTS** — Replace ElevenLabs with Cartesia for voice generation. Backend only change.
 - [ ] **Trends auto-refresh** — Topics marked stale after 24h should trigger background regeneration, not require a manual button click.
 - [ ] **Bulk asset export** — Download all assets for an episode as a ZIP (research brief, script, audio, images, metadata).
-- [ ] **Test Stripe end-to-end** — Full checkout flow with a real card. Currently running in live mode.
+- [x] **Test Stripe end-to-end** — Full checkout flow with a real card. Currently running in live mode.
 
 ---
 
