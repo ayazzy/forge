@@ -379,7 +379,7 @@ export default function Landing() {
           <NavLink href="#trends">Trends</NavLink>
           <NavLink href="#pricing">Pricing</NavLink>
           <Link to="/login" style={{ fontSize:'14px',color:C.textSub }}>Sign in</Link>
-          <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'600',boxShadow:'0 2px 8px rgba(224,53,53,0.2)' }}>
+          <Link to="/try" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'700',boxShadow:'0 4px 16px rgba(224,53,53,0.35)' }}>
             Try it free →
           </Link>
         </div>
@@ -405,7 +405,7 @@ export default function Landing() {
               Your AI<br />production team<br />for YouTube
             </h1>
 
-            <p style={{ fontSize:'17px',color:C.textSub,marginBottom:'32px',lineHeight:'1.75',maxWidth:'420px' }}>
+            <p style={{ fontSize:'18px',color:C.textSub,marginTop:'20px',marginBottom:'32px',lineHeight:'1.75',maxWidth:'420px' }}>
               Forge replaces the 5-tool scramble — research, script, voiceover, images, sound, and metadata — all in one pipeline built around your channel's voice.
             </p>
 
@@ -650,7 +650,7 @@ export default function Landing() {
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'12px' }}>
             {FEATURES.map((f,i) => (
               <AnimateIn key={i} delay={i * 60} style={i === 0 ? { gridColumn: '1 / -1' } : {}}>
-                <div className="card-lift" style={{ background: f.highlight ? 'rgba(224,53,53,0.03)' : C.bg, border:`1px solid ${f.highlight ? 'rgba(224,53,53,0.25)' : C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)', display: f.highlight ? 'flex' : 'block', alignItems: 'center', gap: f.highlight ? '24px' : 0 }}>
+                <div className="card-lift" style={{ background: f.highlight ? 'rgba(224,53,53,0.03)' : C.bg, border:`1px solid ${f.highlight ? 'rgba(224,53,53,0.25)' : C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)', display: f.highlight ? 'flex' : 'block', alignItems: 'center', gap: f.highlight ? '24px' : 0, minHeight: f.highlight ? 'auto' : '160px' }}>
                   <div style={{ display:'flex',alignItems:'center',gap:'10px',flexShrink: 0 }}>
                     <div style={{ width:'28px',height:'28px',borderRadius:'7px',background:C.redSoft,border:`1px solid ${C.redMid}`,display:'flex',alignItems:'center',justifyContent:'center', marginBottom: f.highlight ? 0 : '14px' }}>
                       <span style={{ fontSize:'10px',fontWeight:'800',color:C.red }}>{f.highlight ? '⚡' : String(i).padStart(2,'0')}</span>
@@ -748,7 +748,7 @@ export default function Landing() {
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'16px' }}>
             {TESTIMONIALS.map((t,i) => (
               <div key={i} className="t-card" style={{ background:C.bg,border:`1px solid ${C.border}`,borderRadius:'12px',padding:'24px',boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize:'13px',color:C.textSub,lineHeight:'1.8',marginBottom:'20px',fontStyle:'italic' }}>"{t.quote}"</div>
+                <div style={{ fontSize:'15px',color:C.textSub,lineHeight:'1.8',marginBottom:'20px',fontStyle:'italic' }}>"{t.quote}"</div>
                 <div style={{ display:'flex',alignItems:'center',gap:'10px' }}>
                   <div style={{ width:'32px',height:'32px',borderRadius:'50%',flexShrink:0,background:C.redSoft,border:`1px solid ${C.redMid}`,display:'flex',alignItems:'center',justifyContent:'center' }}>
                     <span style={{ fontSize:'12px',color:C.red,fontWeight:'700' }}>{t.name[0]}</span>

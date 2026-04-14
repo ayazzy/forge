@@ -1,10 +1,13 @@
 import express from 'express';
-import { trackUsage } from '../lib/usage.js';
+import { trackUsage, checkUsageLimit } from '../lib/usage.js';
 const router = express.Router();
 
 router.post('/', async (req, res) => {
   try {
     const { prompt } = req.body;
+
+    const { allowed, used, limit } = await checkUsageLimit(req.user.id, 'ideogram_generations');
+    if (!allowed) return res.status(429).json({ error: 'Monthly image generation limit reached', used, limit, limitType: 'ideogram_generations' });
     const response = await fetch('https://api.ideogram.ai/generate', {
       method: 'POST',
       headers: {

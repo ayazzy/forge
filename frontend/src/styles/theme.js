@@ -31,11 +31,13 @@ export const COLORS = {
   surface: "#1a1a1a",
   surfaceSecondary: "#222222",
   surfaceTertiary: "#2a2a2a",
-  border: "#222222",
+  surfaceHover: "#1e1e1e",
+  border: "rgba(255,255,255,0.06)",
+  borderInput: "#2a2a2a",
   borderLight: "#1e1e1e",
   text: "#ffffff",
-  textSecondary: "#888888",
-  textTertiary: "#444444",
+  textSecondary: "#aaaaaa",
+  textTertiary: "#777777",
   success: "#4ade80",
   successBg: "#0a2a1a",
   successBorder: "#14532d",
@@ -77,7 +79,7 @@ export const S = {
   logoText: {
     fontSize: "13px",
     fontWeight: "800",
-    letterSpacing: "2px",
+    letterSpacing: "3px",
     color: ACCENT,
   },
 
@@ -88,7 +90,7 @@ export const S = {
   },
 
   stageLabel: {
-    fontSize: "12px",
+    fontSize: "13px",
     color: COLORS.textSecondary,
   },
 
@@ -102,16 +104,16 @@ export const S = {
   },
 
   stageTab: (active, done) => ({
-    padding: "14px 18px",
+    padding: "16px 20px",
     border: "none",
     background: "transparent",
     borderBottom: active
-      ? `2px solid ${ACCENT}`
+      ? `3px solid ${ACCENT}`
       : done
-      ? "2px solid #4ade80"
-      : "2px solid transparent",
+      ? "3px solid #4ade80"
+      : "3px solid transparent",
     color: active ? "#fff" : done ? "#4ade80" : COLORS.textTertiary,
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: active ? "600" : "400",
     letterSpacing: "0.2px",
     cursor: done || active ? "pointer" : "not-allowed",
@@ -134,7 +136,7 @@ export const S = {
   card: {
     background: COLORS.surface,
     border: `1px solid ${COLORS.border}`,
-    borderRadius: "12px",
+    borderRadius: "10px",
     padding: "20px",
     marginBottom: "12px",
   },
@@ -142,15 +144,15 @@ export const S = {
   cardElevated: {
     background: COLORS.surface,
     border: `1px solid ${COLORS.border}`,
-    borderRadius: "12px",
+    borderRadius: "10px",
     padding: "24px",
     marginBottom: "16px",
   },
 
   label: {
-    fontSize: "10px",
+    fontSize: "11px",
     fontWeight: "600",
-    letterSpacing: "0.8px",
+    letterSpacing: "0.5px",
     color: COLORS.textSecondary,
     textTransform: "uppercase",
     display: "block",
@@ -165,7 +167,7 @@ export const S = {
   },
 
   sectionSubtitle: {
-    fontSize: "12px",
+    fontSize: "13px",
     color: COLORS.textSecondary,
     marginBottom: "20px",
     lineHeight: "1.5",
@@ -174,25 +176,25 @@ export const S = {
   input: {
     width: "100%",
     background: COLORS.surfaceSecondary,
-    border: `1px solid ${COLORS.border}`,
+    border: `1px solid ${COLORS.borderInput}`,
     color: COLORS.text,
     padding: "10px 14px",
     borderRadius: "8px",
-    fontSize: "13px",
+    fontSize: "14px",
     outline: "none",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
-    transition: "border-color 0.15s ease",
+    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
     boxSizing: "border-box",
   },
 
   textarea: (h = 200) => ({
     width: "100%",
     background: COLORS.surfaceSecondary,
-    border: `1px solid ${COLORS.border}`,
+    border: `1px solid ${COLORS.borderInput}`,
     color: COLORS.text,
     padding: "12px 14px",
     borderRadius: "8px",
-    fontSize: "13px",
+    fontSize: "14px",
     outline: "none",
     resize: "vertical",
     minHeight: `${h}px`,
@@ -207,7 +209,7 @@ export const S = {
     color: disabled ? COLORS.textTertiary : "#fff",
     padding: "10px 20px",
     borderRadius: "8px",
-    fontSize: "13px",
+    fontSize: "14px",
     fontWeight: "600",
     cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
@@ -223,7 +225,7 @@ export const S = {
     color: active ? "#4ade80" : COLORS.textSecondary,
     padding: "8px 14px",
     borderRadius: "8px",
-    fontSize: "12px",
+    fontSize: "13px",
     fontWeight: "500",
     cursor: "pointer",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
@@ -236,7 +238,7 @@ export const S = {
     color: "#4ade80",
     padding: "11px 24px",
     borderRadius: "8px",
-    fontSize: "13px",
+    fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
@@ -251,7 +253,7 @@ export const S = {
     color: COLORS.textSecondary,
     padding: "8px 12px",
     borderRadius: "8px",
-    fontSize: "12px",
+    fontSize: "13px",
     cursor: "pointer",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
   },
@@ -265,12 +267,12 @@ export const S = {
   },
 
   statLabel: {
-    fontSize: "12px",
+    fontSize: "13px",
     color: COLORS.textSecondary,
   },
 
   statValue: {
-    fontSize: "13px",
+    fontSize: "14px",
     color: COLORS.text,
     fontWeight: "600",
   },
@@ -280,10 +282,10 @@ export const S = {
     border: `1px solid ${COLORS.border}`,
     padding: "14px 16px",
     fontFamily: "monospace",
-    fontSize: "12px",
+    fontSize: "13px",
     borderRadius: "8px",
     lineHeight: "1.7",
-    color: "#aaa",
+    color: "#bbb",
   },
 
   promptCard: {

@@ -12,4 +12,11 @@ router.get('/', async (req, res) => {
   res.json(data);
 });
 
+// Delete account — removes auth user (cascades to profiles via FK)
+router.delete('/account', async (req, res) => {
+  const { error } = await supabase.auth.admin.deleteUser(req.user.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ deleted: true });
+});
+
 export default router;

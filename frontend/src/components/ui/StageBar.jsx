@@ -12,7 +12,7 @@ function StageBar({ STAGES, activeStage, completedStages, onStageClick }) {
             title={!completedStages.has(i) && activeStage !== i ? "Complete the current stage to unlock" : ""}
           >
             {completedStages.has(i)
-              ? <span style={{ fontSize: "10px" }}>✓</span>
+              ? <span style={{ fontSize: "12px", color: "#4ade80", lineHeight: 1 }}>●</span>
               : <span style={{ fontSize: "10px", fontWeight: "600", opacity: 0.5 }}>{String(i + 1).padStart(2, "0")}</span>
             }
             {stage.label}

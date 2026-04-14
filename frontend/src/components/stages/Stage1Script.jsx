@@ -222,11 +222,11 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
               <input style={S.input} value={episode} onChange={e => setEpisode(e.target.value)} placeholder="e.g. 02" />
             </div>
             <button style={S.btnPrimary(loading || !topic.trim())} onClick={generate} disabled={loading || !topic.trim()}>
-              {loading ? "Writing…" : script ? "Regenerate" : "Generate Script"}
+              {loading ? "Writing your script…" : script ? "Rewrite script" : "Generate Script"}
             </button>
             {script && (
               <button style={{ ...S.btnApprove, justifyContent: "center" }} onClick={() => onApprove({ script, analysis, episode, topic, ctx })}>
-                Approve &amp; Continue →
+                Looks good, continue →
               </button>
             )}
           </div>
@@ -241,7 +241,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
               { label: "Paragraphs", value: analysis.paragraphCount },
             ].map(s => (
               <div key={s.label} style={{ display: "flex", gap: "6px", alignItems: "baseline" }}>
-                <span style={{ fontSize: "16px", fontWeight: "700", color: COLORS.text }}>{s.value}</span>
+                <span style={{ fontSize: "18px", fontWeight: "700", color: COLORS.text }}>{s.value}</span>
                 <span style={{ fontSize: "11px", color: COLORS.textSecondary }}>{s.label}</span>
               </div>
             ))}
@@ -264,7 +264,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
                     onClick={() => setTab(t.key)}
                     style={{
                       flex: 1,
-                      padding: "7px 12px",
+                      padding: "9px 14px",
                       borderRadius: "7px",
                       border: "none",
                       background: tab === t.key ? COLORS.surface : "transparent",
@@ -339,7 +339,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
                         {Object.entries(hookScore.dimensions || {}).map(([key, val]) => (
                           <div key={key} style={S.card}>
                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                              <span style={S.label}>{key}</span>
+                              <span style={{ ...S.label, color: "#aaa" }}>{key}</span>
                               <span style={{ fontSize: "12px", fontWeight: "600", color: val.score >= 7 ? COLORS.success : val.score >= 5 ? COLORS.warning : COLORS.error }}>{val.score}/10</span>
                             </div>
                             <div style={{ fontSize: "11px", color: COLORS.textSecondary, lineHeight: "1.4" }}>{val.note}</div>
@@ -427,12 +427,13 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                    <button style={{ ...S.btnSecondary(false), flex: 1 }} onClick={() => setShowRevision(true)}>
+                  <div style={{ display: "flex", alignItems: "center", marginBottom: "8px", background: COLORS.surfaceSecondary, borderRadius: "8px", overflow: "hidden", border: `1px solid rgba(255,255,255,0.04)` }}>
+                    <button style={{ ...S.btnSecondary(false), flex: 1, border: "none", background: "transparent", borderRadius: "0" }} onClick={() => setShowRevision(true)}>
                       Give Feedback &amp; Revise
                     </button>
+                    <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.06)", flexShrink: 0 }} />
                     <button
-                      style={{ ...S.btnSecondary(copied), flexShrink: 0 }}
+                      style={{ ...S.btnSecondary(copied), flexShrink: 0, border: "none", background: "transparent", borderRadius: "0" }}
                       onClick={() => { navigator.clipboard.writeText(script); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
                     >
                       {copied ? "Copied!" : "Copy Script"}

@@ -194,6 +194,16 @@ export async function getProfile() {
   return res.json();
 }
 
+export async function deleteAccount() {
+  const authHeader = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/profile/account`, {
+    method: 'DELETE',
+    headers: { ...authHeader },
+  });
+  if (!res.ok) throw new Error('Failed to delete account');
+  return res.json();
+}
+
 export async function getUsage() {
   const authHeader = await getAuthHeader();
   const res = await fetch(`${API_BASE}/api/usage`, { headers: { ...authHeader } });

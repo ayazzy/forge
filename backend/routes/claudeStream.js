@@ -1,10 +1,15 @@
 import express from 'express';
-import { trackUsage } from '../lib/usage.js';
+import { trackUsage, checkUsageLimit } from '../lib/usage.js';
 
 const router = express.Router();
 
 router.post('/', async (req, res) => {
   const { prompt, maxTokens = 4000 } = req.body;
+
+  const { allowed, used, limit } = await checkUsageLimit(req.user.id, 'claude_calls');
+  if (!allowed) {
+    return res.status(429).json({ error: 'Monthly AI call limit reached', used, limit, limitType: 'claude_calls' });
+  }
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');

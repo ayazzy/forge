@@ -111,7 +111,7 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {meta.tags?.map((tag, i) => (
-                <span key={i} style={{ background: COLORS.surfaceSecondary, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontSize: "12px", padding: "4px 12px", borderRadius: "20px" }}>
+                <span key={i} style={{ background: COLORS.surfaceSecondary, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontSize: "12px", padding: "5px 14px", borderRadius: "6px" }}>
                   {tag}
                 </span>
               ))}
@@ -129,7 +129,7 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
                 {meta.chapters.map((c, i) => (
-                  <div key={i} style={{ display: "flex", gap: "16px", padding: "9px 0", borderBottom: i < meta.chapters.length - 1 ? `1px solid ${COLORS.borderLight}` : "none", alignItems: "center" }}>
+                  <div key={i} style={{ display: "flex", gap: "16px", padding: "9px 12px", borderBottom: i < meta.chapters.length - 1 ? `1px solid ${COLORS.borderLight}` : "none", alignItems: "center", background: i % 2 === 1 ? COLORS.surfaceSecondary : "transparent", borderRadius: i % 2 === 1 ? "4px" : "0" }}>
                     <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: "600", color: ACCENT, minWidth: "44px" }}>{c.time}</span>
                     <span style={{ fontSize: "13px", color: COLORS.textSecondary }}>{c.title}</span>
                   </div>
@@ -141,7 +141,7 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
           <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
             <button style={S.btnSecondary(false)} onClick={generate}>Regenerate</button>
             <button style={{ ...S.btnApprove, flex: 1, justifyContent: "center" }} onClick={() => { if (meta) onApprove({ meta }); }}>
-              Go to Assembly →
+              Looks good, continue →
             </button>
           </div>
         </>

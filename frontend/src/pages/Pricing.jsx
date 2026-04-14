@@ -63,7 +63,7 @@ export default function Pricing() {
     <AppLayout>
       <div style={{ padding: "32px 40px", maxWidth: "960px", margin: "0 auto", width: "100%" }}>
         <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "4px" }}>Pricing</div>
-        <div style={{ fontSize: "13px", color: "#555", marginBottom: "32px" }}>7-day free trial on all plans. No credit card required to start.</div>
+        <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "32px" }}>7-day free trial on all plans. No credit card required to start.</div>
 
         {error && (
           <div style={{ background: "#2a1515", border: "1px solid #3a1515", borderRadius: "6px", padding: "10px 14px", fontSize: "12px", color: ACCENT, marginBottom: "16px", maxWidth: "860px" }}>
@@ -76,7 +76,7 @@ export default function Pricing() {
           {plans.map((p) => (
             <div
               key={p.id}
-              style={{ border: `1px solid ${p.highlight ? ACCENT : "#222"}`, borderRadius: "10px", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "20px", background: "#1a1a1a", position: "relative", height: "100%" }}
+              style={{ border: p.highlight ? `2px solid ${ACCENT}` : "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "20px", background: "#1a1a1a", position: "relative", height: "100%" }}
             >
               {p.highlight && (
                 <div style={{ position: "absolute", top: "-11px", left: "50%", transform: "translateX(-50%)", background: ACCENT, color: "#fff", fontSize: "10px", fontWeight: "700", padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.5px" }}>
@@ -87,7 +87,7 @@ export default function Pricing() {
                 <div style={{ fontSize: "14px", fontWeight: "700", color: "#fff", marginBottom: "8px" }}>{p.name}</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "2px" }}>
                   <span style={{ fontSize: "28px", fontWeight: "700", color: p.highlight ? ACCENT : "#fff" }}>{p.price}</span>
-                  <span style={{ fontSize: "13px", color: "#555" }}>{p.period}</span>
+                  <span style={{ fontSize: "14px", color: "#888" }}>{p.period}</span>
                 </div>
               </div>
               {p.oneShot && (
@@ -95,19 +95,19 @@ export default function Pricing() {
                   <span style={{ fontSize: "14px", lineHeight: 1, marginTop: "1px" }}>⚡</span>
                   <div>
                     <div style={{ fontSize: "12px", fontWeight: "700", color: ACCENT, marginBottom: "2px" }}>One Shot Mode</div>
-                    <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.4" }}>Enter a topic — Forge generates research, script, titles, voice cast, and image prompts in one go.</div>
+                    <div style={{ fontSize: "12px", color: "#aaa", lineHeight: "1.4" }}>Enter a topic — Forge generates research, script, titles, voice cast, and image prompts in one go.</div>
                   </div>
                 </div>
               )}
               <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
                 {p.features.map((f, i) => (
-                  <li key={i} style={{ fontSize: "13px", color: i === 0 ? "#fff" : "#888", fontWeight: i === 0 ? "600" : "400" }}>{f}</li>
+                  <li key={i} style={{ fontSize: "13px", color: i === 0 ? "#fff" : "#bbb", fontWeight: i === 0 ? "600" : "400", lineHeight: "1.9" }}>{f}</li>
                 ))}
               </ul>
               <button
                 onClick={() => handlePlanCTA(p.id)}
                 disabled={!!loading}
-                style={{ background: loading === p.id ? "#2a2a2a" : p.highlight ? ACCENT : "#222", color: loading === p.id ? "#555" : "#fff", border: `1px solid ${p.highlight ? ACCENT : "#333"}`, borderRadius: "6px", padding: "11px 0", fontSize: "13px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                style={{ background: loading === p.id ? "#2a2a2a" : p.highlight ? ACCENT : "#222", color: loading === p.id ? "#555" : "#fff", border: `1px solid ${p.highlight ? ACCENT : "#333"}`, borderRadius: "8px", padding: "11px 0", fontSize: "13px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: p.highlight && !loading ? "0 4px 16px rgba(224,53,53,0.3)" : "none" }}
               >
                 {loading === p.id ? "Redirecting..." : p.cta}
               </button>
@@ -115,7 +115,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        <div style={{ marginTop: "8px", fontSize: "12px", color: "#333", maxWidth: "860px" }}>
+        <div style={{ marginTop: "8px", fontSize: "13px", color: "#777", maxWidth: "860px" }}>
           Trial ends after 7 days. Cancel anytime from Settings before being charged.
         </div>
       </div>

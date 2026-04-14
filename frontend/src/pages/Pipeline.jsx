@@ -144,12 +144,14 @@ export default function Pipeline() {
 
     try {
       if (currentEpisodeId) {
+        const allDone = newCompleted.size >= 8;
         await updateEpisode(currentEpisodeId, {
           active_stage: newActive,
           completed_stages: [...newCompleted],
           stage_data: { ...newStageData, _history: newStageHistory },
           title: merged.topic || null,
           episode_number: merged.episode || null,
+          ...(allDone ? { status: 'complete' } : {}),
         });
       } else {
         try {
@@ -364,7 +366,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
       {/* Pipeline action bar */}
       <div style={{
         background: '#1a1a1a',
-        borderBottom: '1px solid #222',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
         padding: '0 32px',
         display: 'flex',
         alignItems: 'center',
@@ -383,7 +385,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         </button>
         <button
           onClick={handleOneShotOpen}
-          style={{ background: 'none', border: '1px solid #333', color: '#888', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
+          style={{ background: 'rgba(224,53,53,0.08)', border: '1px solid rgba(224,53,53,0.3)', color: ACCENT, padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 4px 20px rgba(224,53,53,0.15)' }}
         >
           ⚡ One Shot
         </button>

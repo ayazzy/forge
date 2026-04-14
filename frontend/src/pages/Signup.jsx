@@ -28,8 +28,8 @@ const inputStyle = {
   background: "#222",
   border: "1px solid #2a2a2a",
   borderRadius: "6px",
-  padding: "10px 12px",
-  fontSize: "14px",
+  padding: "11px 14px",
+  fontSize: "15px",
   outline: "none",
   boxSizing: "border-box",
   color: "#fff",
@@ -37,10 +37,10 @@ const inputStyle = {
 };
 
 const labelStyle = {
-  fontSize: "11px",
+  fontSize: "12px",
   fontWeight: "600",
   letterSpacing: "0.3px",
-  color: "#888",
+  color: "#aaa",
   textTransform: "uppercase",
   display: "block",
   marginBottom: "6px",
@@ -92,8 +92,8 @@ export default function Signup() {
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
-        <div style={{ fontSize: "13px", fontWeight: "800", letterSpacing: "2px", textAlign: "center", marginBottom: "32px", color: ACCENT }}>FORGE</div>
-        <div style={{ fontSize: "20px", fontWeight: "700", color: "#fff", marginBottom: "24px", textAlign: "center" }}>Create account</div>
+        <div style={{ fontSize: "13px", fontWeight: "800", letterSpacing: "3px", textAlign: "center", marginBottom: "32px", color: ACCENT }}>FORGE</div>
+        <div style={{ fontSize: "22px", fontWeight: "700", color: "#fff", marginBottom: "24px", textAlign: "center" }}>Create account</div>
 
         {!success && (
           <>
@@ -106,7 +106,7 @@ export default function Signup() {
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
               <div style={{ flex: 1, height: "1px", background: "#222" }} />
-              <span style={{ fontSize: "11px", color: "#444" }}>or</span>
+              <span style={{ fontSize: "12px", color: "#777" }}>or</span>
               <div style={{ flex: 1, height: "1px", background: "#222" }} />
             </div>
           </>
@@ -146,15 +146,15 @@ export default function Signup() {
                 {error}
               </div>
             )}
-            <button type="submit" disabled={loading} style={{ background: loading ? "#2a2a2a" : ACCENT, color: loading ? "#555" : "#fff", border: "none", borderRadius: "6px", padding: "11px", fontSize: "13px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", marginTop: "4px", fontFamily: "inherit" }}>
+            <button type="submit" disabled={loading} style={{ background: loading ? "#2a2a2a" : ACCENT, color: loading ? "#888" : "#fff", border: "none", borderRadius: "6px", padding: "12px", fontSize: "15px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", marginTop: "4px", fontFamily: "inherit" }}>
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
         )}
 
         <div style={{ textAlign: "center", marginTop: "20px", display: "flex", flexDirection: "column", gap: "8px" }}>
-          <Link to="/login" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Already have an account? <span style={{ color: ACCENT }}>Sign in</span></Link>
-          <Link to="/" style={{ fontSize: "12px", color: "#333", textDecoration: "none" }}>← Back to home</Link>
+          <Link to="/login" style={{ fontSize: "14px", color: "#aaa", textDecoration: "none" }}>Already have an account? <span style={{ color: ACCENT }}>Sign in</span></Link>
+          <Link to="/" style={{ fontSize: "13px", color: "#777", textDecoration: "none" }}>← Back to home</Link>
         </div>
       </div>
     </div>

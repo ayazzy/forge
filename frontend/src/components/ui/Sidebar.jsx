@@ -1,9 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useChannelProfile } from '../../hooks/useChannelProfile';
-import { useAuth } from '../../hooks/useAuth';
-import { getBilling } from '../../lib/api';
+import { useAppData } from '../../context/AppDataContext';
 
 const ACCENT = '#e03535';
 
@@ -21,26 +18,7 @@ const NAV = [
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { channelProfile } = useChannelProfile();
-  const { user } = useAuth();
-  const [planLabel, setPlanLabel] = useState(null);
-  const [hasPlan, setHasPlan] = useState(null); // null = loading
-
-  useEffect(() => {
-    if (!user) return;
-    getBilling()
-      .then(data => {
-        const active = data?.subscription_status === 'active' || data?.subscription_status === 'trialing';
-        setHasPlan(active);
-        if (active) {
-          const name = data?.plan;
-          setPlanLabel(name ? `${name.charAt(0).toUpperCase() + name.slice(1)} plan` : 'Active plan');
-        } else {
-          setPlanLabel(null);
-        }
-      })
-      .catch(() => { setHasPlan(false); setPlanLabel(null); });
-  }, [user]);
+  const { channelProfile, usage, hasPlan, planLabel } = useAppData();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -63,10 +41,10 @@ export default function Sidebar() {
     }}>
 
       {/* Logo */}
-      <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid #222' }}>
-        <div style={{ fontSize: '13px', fontWeight: '800', letterSpacing: '2px', color: ACCENT }}>FORGE</div>
+      <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ fontSize: '13px', fontWeight: '800', letterSpacing: '3px', color: ACCENT }}>FORGE</div>
         {channelProfile?.channel_name && (
-          <div style={{ fontSize: '11px', color: '#444', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '12px', color: '#888', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {channelProfile.channel_name}
           </div>
         )}
@@ -85,12 +63,12 @@ export default function Sidebar() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                padding: '9px 20px',
+                padding: '10px 16px',
                 textDecoration: 'none',
-                color: locked ? '#333' : active ? '#ffffff' : '#555',
-                background: active && !locked ? '#222' : 'transparent',
-                borderLeft: active && !locked ? `2px solid ${ACCENT}` : '2px solid transparent',
-                fontSize: '13px',
+                color: locked ? '#555' : active ? '#ffffff' : '#aaa',
+                background: active && !locked ? 'rgba(224,53,53,0.06)' : 'transparent',
+                borderLeft: active && !locked ? `3px solid ${ACCENT}` : '3px solid transparent',
+                fontSize: '14px',
                 fontWeight: active && !locked ? '600' : '400',
                 transition: 'all 0.15s ease',
                 cursor: locked ? 'default' : 'pointer',
@@ -98,7 +76,7 @@ export default function Sidebar() {
             >
               <span style={{ fontSize: '14px', opacity: locked ? 0.3 : active ? 1 : 0.6 }}>{item.icon}</span>
               {item.label}
-              {locked && <span style={{ marginLeft: 'auto', fontSize: '9px', color: '#333' }}>🔒</span>}
+              {locked && <span style={{ marginLeft: 'auto', fontSize: '9px', color: '#666' }}>🔒</span>}
             </Link>
           );
         })}
@@ -110,7 +88,7 @@ export default function Sidebar() {
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '9px 20px',
+              padding: '10px 16px',
               textDecoration: 'none',
               color: ACCENT,
               fontSize: '12px',
@@ -125,7 +103,7 @@ export default function Sidebar() {
       </div>
 
       {/* Bottom — channel avatar + sign out */}
-      <div style={{ padding: '16px 20px', borderTop: '1px solid #222' }}>
+      <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
           <div style={{
             width: '32px', height: '32px', borderRadius: '50%',
@@ -139,16 +117,61 @@ export default function Sidebar() {
             <div style={{ fontSize: '12px', color: '#fff', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {channelProfile?.channel_name || 'My Channel'}
             </div>
-            <div style={{ fontSize: '10px', color: '#444' }}>
-              {hasPlan === null ? '…' : planLabel || 'No active plan'}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '3px',
+              background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '20px', padding: '2px 8px',
+            }}>
+              {hasPlan && planLabel && (
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+              )}
+              <span style={{ fontSize: '11px', color: hasPlan ? '#aaa' : '#777' }}>
+                {hasPlan === null ? '…' : planLabel || 'No plan active'}
+              </span>
+              {!hasPlan && hasPlan !== null && (
+                <Link to="/pricing" style={{ fontSize: '10px', color: ACCENT, textDecoration: 'none', fontWeight: '600' }}>Upgrade →</Link>
+              )}
             </div>
           </div>
         </div>
+        {/* Mini usage meters */}
+        {usage && (
+          <div style={{ marginBottom: '14px' }}>
+            {[
+              { key: 'claude_calls',          limitKey: 'claude_calls',          label: 'AI' },
+              { key: 'elevenlabs_characters',  limitKey: 'elevenlabs_characters', label: 'Voice' },
+              { key: 'ideogram_generations',   limitKey: 'ideogram_generations',  label: 'Images' },
+            ].map(m => {
+              const FALLBACK = { claude_calls: 300, elevenlabs_characters: 75000, ideogram_generations: 50 };
+              const used = usage[m.key] || 0;
+              const limit = usage?.limits?.[m.limitKey] || FALLBACK[m.limitKey];
+              const pct = Math.min((used / limit) * 100, 100);
+              const color = pct > 90 ? '#e03535' : pct > 70 ? '#d97706' : '#444';
+              return (
+                <div key={m.key} style={{ marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '10px', color: '#666' }}>{m.label}</span>
+                    <span style={{ fontSize: '10px', color: pct > 90 ? '#e03535' : '#555' }}>
+                      {pct > 90 ? 'Almost full' : `${Math.round(pct)}%`}
+                    </span>
+                  </div>
+                  <div style={{ height: '2px', background: '#252525', borderRadius: '2px' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
+            <Link to="/settings" style={{ fontSize: '10px', color: '#555', textDecoration: 'none', marginTop: '4px', display: 'block' }}>
+              View usage →
+            </Link>
+          </div>
+        )}
+
         <button
           onClick={handleSignOut}
           style={{
-            background: 'none', border: 'none', color: '#444',
-            fontSize: '11px', cursor: 'pointer', padding: 0,
+            background: 'none', border: 'none', color: '#888',
+            fontSize: '12px', cursor: 'pointer', padding: 0,
             fontFamily: 'inherit',
           }}
         >

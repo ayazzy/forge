@@ -1,11 +1,14 @@
 import express from 'express';
-import { trackUsage } from '../lib/usage.js';
+import { trackUsage, checkUsageLimit } from '../lib/usage.js';
 const router = express.Router();
 
 router.post('/:voiceId', async (req, res) => {
   try {
     const { voiceId } = req.params;
     const characterCount = req.body.text?.length || 0;
+
+    const { allowed, used, limit } = await checkUsageLimit(req.user.id, 'elevenlabs_characters');
+    if (!allowed) return res.status(429).json({ error: 'Monthly voice character limit reached', used, limit, limitType: 'elevenlabs_characters' });
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,

@@ -97,21 +97,21 @@ Return ONLY valid JSON:
             onClick={generate}
             disabled={loading || !topic.trim()}
           >
-            {loading ? "Researching…" : research ? "Re-research" : "Research This Topic"}
+            {loading ? "Researching your topic…" : research ? "Re-research" : "Research This Topic"}
           </button>
           {research && !research.error && (
             <button
               style={{ ...S.btnApprove, flexShrink: 0 }}
               onClick={() => onApprove({ topic, context, research, researchText: toText })}
             >
-              Approve &amp; Write Script →
+              Looks good, continue →
             </button>
           )}
         </div>
       </div>
 
       {/* Results */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {!research && !loading && (
             <div style={{ color: COLORS.textTertiary, fontSize: "13px", padding: "24px 0" }}>
               Enter a topic above to begin research.
@@ -119,7 +119,7 @@ Return ONLY valid JSON:
           )}
           {loading && (
             <div style={{ color: COLORS.textSecondary, fontSize: "13px", padding: "24px 0" }}>
-              Researching…
+              Researching your topic…
             </div>
           )}
           {research?.error && (
@@ -128,7 +128,7 @@ Return ONLY valid JSON:
           {research && !research.error && (
             <>
               {/* Row 1: Core Concept + Context (equal, paragraph content) */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <div style={{ ...S.card, marginBottom: 0 }}>
                   <div style={S.label}>Core Concept</div>
                   <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: "1.6" }}>{research.coreConcept}</div>
@@ -140,12 +140,12 @@ Return ONLY valid JSON:
               </div>
 
               {/* Row 2: Key Facts (wide) + Main Subject (narrow) */}
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <div style={{ ...S.card, marginBottom: 0 }}>
                   <div style={S.label}>Key Facts</div>
                   {(research.keyFacts || []).map((f, i) => (
-                    <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${COLORS.borderLight}` }}>
-                      <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: "1.4", marginBottom: "2px" }}>• {f.fact}</div>
+                    <div key={i} style={{ padding: "10px 0", borderBottom: `1px solid ${COLORS.borderLight}` }}>
+                      <div style={{ fontSize: "13px", color: COLORS.text, lineHeight: "1.7", marginBottom: "2px" }}>• {f.fact}</div>
                       <div style={{ fontSize: "12px", color: COLORS.textTertiary, paddingLeft: "12px" }}>{f.why}</div>
                     </div>
                   ))}
@@ -166,7 +166,7 @@ Return ONLY valid JSON:
               </div>
 
               {/* Row 3: Authentic Details (wide) + Avoid (narrow) */}
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <div style={{ ...S.card, marginBottom: 0 }}>
                   <div style={S.label}>Authentic Details</div>
                   {(research.authenticDetails || []).map((d, i) => (

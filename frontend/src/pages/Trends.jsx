@@ -25,7 +25,7 @@ export default function Trends() {
 
   useEffect(() => {
     loadTopics();
-    getSavedTopics().then(setSavedTopics).catch(() => {});
+    getSavedTopics().then(setSavedTopics).catch(e => console.error('Failed to load saved topics:', e));
   }, []);
 
   const loadTopics = async () => {
@@ -114,14 +114,14 @@ export default function Trends() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
           <div>
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>Trend Research</div>
-            <div style={{ fontSize: '13px', color: '#555' }}>
+            <div style={{ fontSize: '14px', color: '#aaa' }}>
               Real YouTube data for {channelName} — sorted by views-to-subscriber ratio.
             </div>
           </div>
           {mode === 'browse' && topics.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {generatedAt && (
-                <div style={{ fontSize: '11px', color: '#444' }}>
+                <div style={{ fontSize: '12px', color: '#888' }}>
                   {isStale ? '⚠ May be outdated' : `Updated ${new Date(generatedAt).toLocaleDateString()}`}
                 </div>
               )}
@@ -153,7 +153,7 @@ export default function Trends() {
               style={{
                 padding: '8px 20px', borderRadius: '8px', border: 'none',
                 background: mode === m.key ? '#111' : 'transparent',
-                color: mode === m.key ? '#fff' : '#555',
+                color: mode === m.key ? '#fff' : '#999',
                 fontSize: '13px', fontWeight: mode === m.key ? '600' : '400',
                 cursor: 'pointer', transition: 'all 0.15s ease', fontFamily: 'inherit',
               }}
@@ -196,9 +196,9 @@ export default function Trends() {
                 {topics.map((result, i) => (
                   <div key={i} style={{
                     background: '#1a1a1a',
-                    border: '1px solid #222',
+                    border: '1px solid rgba(255,255,255,0.06)',
                     borderLeft: `3px solid ${result.competitionColor}`,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     padding: '20px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -211,7 +211,7 @@ export default function Trends() {
                         <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', lineHeight: '1.4', marginBottom: '6px' }}>
                           {result.topic}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#555', lineHeight: '1.5' }}>
+                        <div style={{ fontSize: '13px', color: '#aaa', lineHeight: '1.5' }}>
                           {result.angle}
                         </div>
                       </div>
@@ -229,10 +229,10 @@ export default function Trends() {
 
                     {/* Why it works */}
                     <div style={{ background: '#111', borderRadius: '8px', padding: '12px 14px' }}>
-                      <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>
+                      <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: '600' }}>
                         Why this works
                       </div>
-                      <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.6' }}>
+                      <div style={{ fontSize: '13px', color: '#bbb', lineHeight: '1.6' }}>
                         {result.whyItWorks}
                       </div>
                     </div>
@@ -240,7 +240,7 @@ export default function Trends() {
                     {/* Evidence */}
                     {result.evidenceVideo && (
                       <div style={{ borderTop: '1px solid #222', paddingTop: '12px' }}>
-                        <div style={{ fontSize: '10px', color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', fontWeight: '600' }}>
+                        <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', fontWeight: '600' }}>
                           Proof it works
                         </div>
                         <a
@@ -271,7 +271,7 @@ export default function Trends() {
                                 {result.evidenceVideo}
                               </div>
                             </div>
-                            <div style={{ fontSize: '11px', color: '#555', flexShrink: 0 }}>↗</div>
+                            <div style={{ fontSize: '12px', color: '#888', flexShrink: 0 }}>↗</div>
                           </div>
                         </a>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -285,10 +285,10 @@ export default function Trends() {
                               border: stat.highlight ? '1px solid #333' : 'none',
                               borderRadius: '6px', padding: '7px', textAlign: 'center',
                             }}>
-                              <div style={{ fontSize: '13px', fontWeight: '700', color: stat.highlight ? '#818cf8' : '#fff' }}>
+                              <div style={{ fontSize: stat.highlight ? '18px' : '13px', fontWeight: '700', color: stat.highlight ? '#818cf8' : '#fff' }}>
                                 {stat.value}
                               </div>
-                              <div style={{ fontSize: '10px', color: '#444' }}>{stat.label}</div>
+                              <div style={{ fontSize: '11px', color: '#888' }}>{stat.label}</div>
                             </div>
                           ))}
                         </div>
@@ -313,7 +313,7 @@ export default function Trends() {
                         title={isSaved(result.topic) ? 'Remove from saved' : 'Save for later'}
                         style={{
                           background: isSaved(result.topic) ? '#1a1a2a' : '#222',
-                          color: isSaved(result.topic) ? '#818cf8' : '#555',
+                          color: isSaved(result.topic) ? '#818cf8' : '#999',
                           border: `1px solid ${isSaved(result.topic) ? '#333' : '#333'}`,
                           padding: '10px 12px', borderRadius: '8px', fontSize: '14px',
                           cursor: 'pointer', fontFamily: 'inherit',
@@ -346,8 +346,8 @@ export default function Trends() {
           <div>
             {savedTopics.length === 0 ? (
               <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: '14px', color: '#555', marginBottom: '8px' }}>No saved topics yet</div>
-                <div style={{ fontSize: '12px', color: '#333' }}>Star a topic in the Ideas view to save it here</div>
+                <div style={{ fontSize: '15px', color: '#aaa', marginBottom: '8px' }}>No saved topics yet</div>
+                <div style={{ fontSize: '13px', color: '#777' }}>Star a topic in the Ideas view to save it here</div>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -361,7 +361,7 @@ export default function Trends() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', lineHeight: '1.4', marginBottom: '6px' }}>{t.topic}</div>
-                        <div style={{ fontSize: '12px', color: '#555' }}>{t.angle}</div>
+                        <div style={{ fontSize: '13px', color: '#aaa' }}>{t.angle}</div>
                       </div>
                       <div style={{
                         fontSize: '10px', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', flexShrink: 0,
@@ -412,8 +412,8 @@ export default function Trends() {
                 <input
                   style={{
                     flex: 1, background: '#111', border: '1px solid #333',
-                    color: '#fff', padding: '11px 14px', borderRadius: '8px',
-                    fontSize: '14px', outline: 'none', fontFamily: 'inherit',
+                    color: '#fff', padding: '0 14px', height: '40px', borderRadius: '8px',
+                    fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                   }}
                   placeholder="e.g. The rise and fall of Blockbuster"
                   value={customTopic}
@@ -425,7 +425,7 @@ export default function Trends() {
                   disabled={validating || !customTopic.trim()}
                   style={{
                     background: validating || !customTopic.trim() ? '#222' : '#e03535',
-                    color: validating || !customTopic.trim() ? '#555' : '#fff',
+                    color: validating || !customTopic.trim() ? '#888' : '#fff',
                     border: 'none', padding: '11px 24px', borderRadius: '8px',
                     fontSize: '13px', fontWeight: '600',
                     cursor: validating || !customTopic.trim() ? 'not-allowed' : 'pointer',
@@ -436,7 +436,7 @@ export default function Trends() {
                 </button>
               </div>
               {validating && (
-                <div style={{ fontSize: '11px', color: '#444', marginTop: '10px' }}>
+                <div style={{ fontSize: '13px', color: '#888', marginTop: '10px' }}>
                   Searching YouTube and analysing... ~10 seconds
                 </div>
               )}
@@ -459,7 +459,7 @@ export default function Trends() {
                         {rec}
                       </div>
                     </div>
-                    <div style={{ fontSize: '13px', color: '#888', lineHeight: '1.6', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', color: '#aaa', lineHeight: '1.6', marginBottom: '12px' }}>
                       {validation.analysis.reason}
                     </div>
                     {validation.avgRatio > 0 && (
@@ -477,14 +477,14 @@ export default function Trends() {
                             <div style={{ fontSize: '16px', fontWeight: '700', color: stat.highlight ? '#818cf8' : '#fff', marginBottom: '2px' }}>
                               {stat.value}
                             </div>
-                            <div style={{ fontSize: '10px', color: '#555' }}>{stat.label}</div>
+                            <div style={{ fontSize: '11px', color: '#888' }}>{stat.label}</div>
                           </div>
                         ))}
                       </div>
                     )}
                     {validation.analysis.angle && (
                       <div style={{ background: '#ffffff08', borderRadius: '8px', padding: '12px 14px' }}>
-                        <div style={{ fontSize: '10px', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Suggested angle</div>
+                        <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Suggested angle</div>
                         <div style={{ fontSize: '13px', color: '#ccc' }}>{validation.analysis.angle}</div>
                       </div>
                     )}
@@ -492,7 +492,7 @@ export default function Trends() {
 
                   {validation.videos?.length > 0 && (
                     <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '20px', marginBottom: '12px' }}>
-                      <div style={{ fontSize: '11px', color: '#555', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+                      <div style={{ fontSize: '12px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
                         Top videos on this topic
                       </div>
                       {validation.videos.slice(0, 5).map((video, i) => (
@@ -511,7 +511,7 @@ export default function Trends() {
                             <div style={{ fontSize: '12px', color: '#ccc', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {video.title}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#555' }}>
+                            <div style={{ fontSize: '12px', color: '#888' }}>
                               {video.channelName} · {fmtViews(video.views)} views · {video.subscribers > 1000 ? `${Math.round(video.subscribers / 1000)}K` : video.subscribers} subs
                             </div>
                           </div>
