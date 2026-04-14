@@ -6,8 +6,14 @@ import { extractJSON } from "../../lib/parseJSON";
 
 // ─── Mode selector cards ────────────────────────────────────────────────────
 
-function ModeSelector({ onSelect, researchData }) {
+function ModeSelector({ onSelect, researchData, billing, onOneShot }) {
   const hasResearch = !!researchData?.research;
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  const plan = billing?.plan;
+  const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
+  const canOneShot = isActive && (plan === 'studio' || plan === 'pro');
+
   const modes = [
     {
       id: "write",
@@ -22,6 +28,7 @@ function ModeSelector({ onSelect, researchData }) {
       desc: "Enter your topic and Forge writes a full script. Edit it after generation.",
     },
   ];
+
   return (
     <div style={{ maxWidth: "560px", margin: "0 auto", paddingTop: "24px" }}>
       <div style={{ fontSize: "13px", color: COLORS.textTertiary, marginBottom: "20px", textAlign: "center" }}>
@@ -60,6 +67,65 @@ function ModeSelector({ onSelect, researchData }) {
             </div>
           </button>
         ))}
+
+        {/* One Shot card */}
+        <button
+          onClick={() => {
+            if (canOneShot) {
+              onOneShot?.();
+            } else {
+              setShowUpgrade(v => !v);
+            }
+          }}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "16px",
+            background: canOneShot ? "rgba(224,53,53,0.04)" : COLORS.surface,
+            border: `1px solid ${canOneShot ? "rgba(224,53,53,0.3)" : COLORS.border}`,
+            borderRadius: "10px",
+            padding: "18px 20px",
+            cursor: "pointer",
+            textAlign: "left",
+            fontFamily: "inherit",
+            opacity: canOneShot ? 1 : 0.6,
+            transition: "border-color 0.15s, opacity 0.15s",
+            position: "relative",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = canOneShot ? ACCENT : COLORS.border; e.currentTarget.style.opacity = "1"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = canOneShot ? "rgba(224,53,53,0.3)" : COLORS.border; e.currentTarget.style.opacity = canOneShot ? "1" : "0.6"; }}
+        >
+          <span style={{ fontSize: "20px", lineHeight: 1, marginTop: "2px", flexShrink: 0 }}>⚡</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+              <span style={{ fontSize: "14px", fontWeight: "700", color: canOneShot ? ACCENT : COLORS.text }}>One Shot Mode</span>
+              {!canOneShot && (
+                <span style={{ fontSize: "10px", fontWeight: "700", background: "rgba(255,255,255,0.08)", border: `1px solid ${COLORS.border}`, borderRadius: "4px", padding: "2px 7px", color: COLORS.textTertiary, display: "flex", alignItems: "center", gap: "4px" }}>
+                  🔒 Studio plan
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: "12px", color: COLORS.textSecondary, lineHeight: "1.6" }}>
+              Type a topic — Forge runs research, script, titles, voice cast, and image prompts in one go.
+            </div>
+          </div>
+        </button>
+
+        {/* Inline upgrade prompt */}
+        {showUpgrade && (
+          <div style={{ background: "rgba(224,53,53,0.06)", border: `1px solid rgba(224,53,53,0.2)`, borderRadius: "10px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text, marginBottom: "4px" }}>One Shot is available on Studio and Pro</div>
+              <div style={{ fontSize: "12px", color: COLORS.textSecondary }}>Upgrade to run research, script, titles, voice cast, and image prompts in a single click.</div>
+            </div>
+            <a
+              href="/pricing"
+              style={{ background: ACCENT, color: "#fff", padding: "8px 16px", borderRadius: "7px", fontSize: "12px", fontWeight: "700", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}
+            >
+              Upgrade →
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -286,7 +352,7 @@ function ScoreTab({ feedback, onApplyRetentionFix, onApplyCoachFix }) {
 
 // ─── Main Stage1 component ──────────────────────────────────────────────────
 
-function Stage1({ onApprove, saved, researchData, isComplete, onBackToSummary }) {
+function Stage1({ onApprove, saved, researchData, isComplete, onBackToSummary, billing, onOneShot }) {
   const hasScript = !!saved?.script;
   const [scriptMode, setScriptMode] = useState(hasScript ? 'editing' : 'choose');
 
@@ -493,7 +559,7 @@ Rules: hook scores are 1-5. Identify exactly 3 retention risks. Be specific — 
 
       {/* Mode selection */}
       {scriptMode === 'choose' && (
-        <ModeSelector onSelect={enterMode} researchData={researchData} />
+        <ModeSelector onSelect={enterMode} researchData={researchData} billing={billing} onOneShot={onOneShot} />
       )}
 
       {/* Editor + panel split */}

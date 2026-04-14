@@ -63,10 +63,8 @@ export default function Pipeline() {
 
   // 3.2 — Confirm modals
   const [newEpisodeConfirm, setNewEpisodeConfirm] = useState(false);
-  const [oneShotConfirm, setOneShotConfirm] = useState(false);
 
   const [showOneShot, setShowOneShot] = useState(false);
-  const [oneShotUpgradePrompt, setOneShotUpgradePrompt] = useState(false);
   const [oneShotTopic, setOneShotTopic] = useState('');
   const [oneShotCtx, setOneShotCtx] = useState('');
   const [oneShotRunning, setOneShotRunning] = useState(false);
@@ -283,22 +281,13 @@ export default function Pipeline() {
 
   const setOsStep = (key, status) => setOneShotSteps(prev => ({ ...prev, [key]: status }));
 
-  const handleOneShotOpen = async () => {
-    let b = billing;
-    if (!b) {
-      try { b = await getBilling(); setBilling(b); } catch {}
-    }
-    const plan = b?.plan || 'free';
-    if (plan === 'studio' || plan === 'pro') {
-      setShowOneShot(true);
-      setOneShotDone(false);
-      setOneShotTopic('');
-      setOneShotCtx('');
-      setOneShotSteps({});
-      setOneShotScript('');
-    } else {
-      setOneShotUpgradePrompt(true);
-    }
+  const handleOneShotOpen = () => {
+    setShowOneShot(true);
+    setOneShotDone(false);
+    setOneShotTopic('');
+    setOneShotCtx('');
+    setOneShotSteps({});
+    setOneShotScript('');
   };
 
   const runOneShot = async () => {
@@ -406,15 +395,6 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         confirmText="Start new"
         variant="warning"
       />
-      <ConfirmModal
-        isOpen={oneShotConfirm}
-        onClose={() => setOneShotConfirm(false)}
-        onConfirm={() => { setShowOneShot(true); setOneShotDone(false); setOneShotTopic(''); setOneShotCtx(''); setOneShotSteps({}); setOneShotScript(''); }}
-        title="Re-run One Shot?"
-        description="This will replace all current stage data with a new One Shot generation."
-        confirmText="Re-run"
-        variant="warning"
-      />
 
       {/* 3.1 — Restore backup prompt */}
       {backupPrompt && !currentEpisodeId && (
@@ -471,27 +451,10 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         </button>
         {(() => {
           const totalRemaining = billing?.total_remaining ?? null;
-          const isCreator = billing?.plan === 'creator';
           const noEpisodes = totalRemaining !== null && totalRemaining === 0;
           const oneLast = totalRemaining === 1;
-          const oneShotDisabled = noEpisodes && isCreator;
           return (
             <>
-              <button
-                onClick={() => {
-                  if (oneShotDisabled) return;
-                  // 3.2 — If stages already have data, confirm before re-running
-                  if (Object.keys(stageData).length > 0 && !oneShotDone) {
-                    setOneShotConfirm(true);
-                  } else {
-                    handleOneShotOpen();
-                  }
-                }}
-                disabled={oneShotDisabled}
-                style={{ background: 'rgba(224,53,53,0.08)', border: '1px solid rgba(224,53,53,0.3)', color: oneShotDisabled ? '#555' : ACCENT, padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: oneShotDisabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 4px 20px rgba(224,53,53,0.15)', opacity: oneShotDisabled ? 0.5 : 1 }}
-              >
-                ⚡ One Shot
-              </button>
               {noEpisodes ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '11px', color: '#e03535' }}>No episodes remaining —</span>
@@ -551,27 +514,6 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
             Buy episodes →
           </Link>
           <button onClick={() => setEpisodeLimitError(false)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '16px', padding: '0', fontFamily: 'inherit' }}>×</button>
-        </div>
-      )}
-
-      {/* One-shot upgrade prompt */}
-      {oneShotUpgradePrompt && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
-          <div style={{ background: '#1a1a1a', border: '1px solid #222', borderRadius: '12px', padding: '32px', maxWidth: '420px', width: '100%', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', marginBottom: '12px' }}>⚡</div>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>One Shot Mode is Studio+</div>
-            <div style={{ fontSize: '13px', color: '#555', lineHeight: '1.6', marginBottom: '24px' }}>
-              Enter a topic and Forge generates your research, script, titles, voice cast, and image prompts in one go. Available on Studio and Pro plans.
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <Link to="/pricing" style={{ background: ACCENT, color: '#fff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', textDecoration: 'none' }}>
-                Upgrade to Studio →
-              </Link>
-              <button onClick={() => setOneShotUpgradePrompt(false)} style={{ background: 'none', border: '1px solid #333', color: '#555', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -836,7 +778,7 @@ Return ONLY the script. No headers, no stage directions, pure narration prose.`;
         ) : (
           <>
             {activeStage === 0 && <ErrorBoundary stageMode><Stage0Research key={stageVersionKeys[0] || 0} onApprove={d => handleApprove(0, d)} saved={stageData[0]} data={mergedData} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
-            {activeStage === 1 && <ErrorBoundary stageMode><Stage1Script key={stageVersionKeys[1] || 0} onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
+            {activeStage === 1 && <ErrorBoundary stageMode><Stage1Script key={stageVersionKeys[1] || 0} onApprove={d => handleApprove(1, d)} saved={stageData[1]} researchData={{ ...stageData[0], channelProfile }} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} billing={billing} onOneShot={handleOneShotOpen} /></ErrorBoundary>}
             {activeStage === 2 && <ErrorBoundary stageMode><Stage2Voiceover key={stageVersionKeys[2] || 0} data={mergedData} onApprove={d => handleApprove(2, d)} saved={stageData[2]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
             {activeStage === 3 && <ErrorBoundary stageMode><Stage3Sound key={stageVersionKeys[3] || 0} data={mergedData} onApprove={d => handleApprove(3, d)} saved={stageData[3]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
             {activeStage === 4 && <ErrorBoundary stageMode><Stage4Images key={stageVersionKeys[4] || 0} data={mergedData} onApprove={d => handleApprove(4, d)} saved={stageData[4]} isComplete={isComplete} onBackToSummary={() => setActiveStage(8)} /></ErrorBoundary>}
