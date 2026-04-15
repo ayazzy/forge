@@ -4,19 +4,58 @@ import { injectV3Tags } from "../../lib/analysis";
 import { S, VOICE_PALETTE, COLORS, ACCENT, renderTagged } from "../../styles/theme";
 import { extractJSON } from "../../lib/parseJSON";
 
-// Voice browser: 3-col grid of Cartesia voices with preview
-function VoiceBrowser({ voices, onSelect, selected, previewText }) {
-  const [loading, setLoading] = useState(null);   // voice.id currently fetching
-  const [playing, setPlaying] = useState(null);   // voice.id currently playing
-  const [previewUrls, setPreviewUrls] = useState({});
-  const [previewErrors, setPreviewErrors] = useState({});
-  const [search, setSearch] = useState('');
-  const currentAudio = useRef(null);              // single shared Audio instance
+// ─── Voice tag inference ──────────────────────────────────────────────────────
+const TAG_RULES = [
+  { tag: 'Male',      terms: ['male', 'man', 'guy', 'masculine', 'baritone', 'tenor', 'his'] },
+  { tag: 'Female',    terms: ['female', 'woman', 'girl', 'feminine', 'her', 'soprano'] },
+  { tag: 'Deep',      terms: ['deep', 'bass', 'low', 'gravelly', 'resonant', 'booming', 'baritone'] },
+  { tag: 'Warm',      terms: ['warm', 'smooth', 'rich', 'friendly', 'mellow', 'soothing', 'gentle'] },
+  { tag: 'Energetic', terms: ['energetic', 'upbeat', 'lively', 'dynamic', 'enthusiastic', 'bright', 'animated', 'exciting'] },
+  { tag: 'Calm',      terms: ['calm', 'soothing', 'soft', 'peaceful', 'relaxed', 'composed', 'measured', 'steady', 'quiet'] },
+];
+const FILTER_TAGS = ['All', 'Male', 'Female', 'Deep', 'Warm', 'Energetic', 'Calm'];
 
-  const filtered = voices.filter(v =>
-    !search || v.name?.toLowerCase().includes(search.toLowerCase()) ||
-    v.description?.toLowerCase().includes(search.toLowerCase())
-  );
+function inferTags(voice) {
+  const haystack = `${voice.name} ${voice.description || ''}`.toLowerCase();
+  return TAG_RULES.filter(r => r.terms.some(t => haystack.includes(t))).map(r => r.tag);
+}
+
+// Split Cartesia name like "Damon - Commanding Narrator" into parts
+function parseName(raw = '') {
+  const [name, ...rest] = raw.split(/\s*[-–]\s*/);
+  return { name: name.trim(), descriptor: rest.join(' ').trim() };
+}
+
+// ─── Voice browser ────────────────────────────────────────────────────────────
+function VoiceBrowser({ voices, onSelect, selected, previewText }) {
+  const [loading, setLoading]       = useState(null);
+  const [playing, setPlaying]       = useState(null);
+  const [hovering, setHovering]     = useState(null);
+  const [previewUrls, setPreviewUrls]   = useState({});
+  const [previewErrors, setPreviewErrors] = useState({});
+  const [search, setSearch]         = useState('');
+  const [activeFilters, setActiveFilters] = useState([]);
+  const currentAudio = useRef(null);
+
+  // Pre-compute tags for every voice once
+  const voicesWithTags = voices.map(v => ({ ...v, _tags: inferTags(v) }));
+
+  const toggleFilter = (tag) => {
+    if (tag === 'All') { setActiveFilters([]); return; }
+    setActiveFilters(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const visible = voicesWithTags.filter(v => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q ||
+      v.name?.toLowerCase().includes(q) ||
+      v.description?.toLowerCase().includes(q);
+    const matchesFilters = activeFilters.length === 0 ||
+      activeFilters.every(f => v._tags.includes(f));
+    return matchesSearch && matchesFilters;
+  });
 
   const stopCurrent = () => {
     if (currentAudio.current) {
@@ -33,42 +72,23 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
     currentAudio.current = audio;
     setPlaying(voiceId);
     audio.onended = () => {
-      if (currentAudio.current === audio) {
-        currentAudio.current = null;
-        setPlaying(null);
-      }
+      if (currentAudio.current === audio) { currentAudio.current = null; setPlaying(null); }
     };
-    audio.play().catch(e => {
-      console.error('Playback failed:', e);
-      setPlaying(null);
-    });
+    audio.play().catch(() => setPlaying(null));
   };
 
   const handlePreview = async (e, voice) => {
     e.stopPropagation();
-
-    // Already playing this voice — stop it
-    if (playing === voice.id) {
-      stopCurrent();
-      return;
-    }
-
-    // Cached URL — play immediately
-    if (previewUrls[voice.id]) {
-      playUrl(previewUrls[voice.id], voice.id);
-      return;
-    }
-
-    // Fetch from Cartesia
+    if (playing === voice.id) { stopCurrent(); return; }
+    if (previewUrls[voice.id]) { playUrl(previewUrls[voice.id], voice.id); return; }
     setLoading(voice.id);
     setPreviewErrors(prev => ({ ...prev, [voice.id]: null }));
     try {
-      const text = previewText?.slice(0, 150) || 'Hello, this is a preview of how this voice sounds for your podcast or YouTube channel.';
+      const text = previewText?.slice(0, 150) || 'Hello, this is a preview of how this voice sounds.';
       const url = await generateCartesiaSpeech(text, voice.id, 1.0);
       setPreviewUrls(prev => ({ ...prev, [voice.id]: url }));
       playUrl(url, voice.id);
     } catch (err) {
-      console.error('Preview failed:', err);
       setPreviewErrors(prev => ({ ...prev, [voice.id]: err.message || 'Preview failed' }));
     } finally {
       setLoading(null);
@@ -77,70 +97,186 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
 
   return (
     <div>
-      <input
-        style={{ ...S.input, marginBottom: '14px', width: '100%' }}
-        placeholder="Search voices…"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', maxHeight: '380px', overflowY: 'auto', paddingRight: '2px' }}>
-        {filtered.map(v => {
+      {/* Search + filter row */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <input
+          style={{
+            background: '#1a1a1a',
+            border: '1px solid #333',
+            borderRadius: '8px',
+            color: '#fff',
+            fontSize: '13px',
+            padding: '6px 12px',
+            outline: 'none',
+            width: '160px',
+            flexShrink: 0,
+            fontFamily: 'inherit',
+          }}
+          placeholder="Search…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {FILTER_TAGS.map(tag => {
+            const active = tag === 'All' ? activeFilters.length === 0 : activeFilters.includes(tag);
+            return (
+              <button
+                key={tag}
+                onClick={() => toggleFilter(tag)}
+                style={{
+                  background: active ? '#e03535' : '#1a1a1a',
+                  border: `1px solid ${active ? '#e03535' : '#444'}`,
+                  borderRadius: '20px',
+                  color: active ? '#fff' : '#aaa',
+                  fontSize: '11px',
+                  padding: '3px 10px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.12s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Voice grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '12px',
+        maxHeight: '400px',
+        overflowY: 'auto',
+        paddingRight: '4px',
+      }}>
+        {visible.map(v => {
           const isSelected = selected?.includes(v.id);
-          const isPlaying = playing === v.id;
-          const isLoading = loading === v.id;
+          const isPlaying  = playing === v.id;
+          const isLoading  = loading === v.id;
+          const isHovered  = hovering === v.id;
+          const { name, descriptor } = parseName(v.name);
+
           return (
             <div
               key={v.id}
               onClick={() => onSelect(v)}
+              onMouseEnter={() => setHovering(v.id)}
+              onMouseLeave={() => setHovering(null)}
               style={{
-                background: isSelected ? 'rgba(224,53,53,0.08)' : COLORS.surfaceSecondary,
-                border: `1px solid ${isPlaying ? '#2563eb' : isSelected ? ACCENT + '55' : COLORS.border}`,
+                background: isSelected ? 'rgba(224,53,53,0.07)' : '#181818',
+                border: `1px solid ${isSelected ? '#e03535' : isHovered ? '#444' : '#222'}`,
                 borderRadius: '8px',
-                padding: '12px',
+                padding: '16px',
                 cursor: 'pointer',
-                transition: 'border-color 0.15s',
-                boxShadow: isPlaying ? '0 0 0 2px rgba(37,99,235,0.2)' : 'none',
+                transition: 'border-color 0.15s, background 0.15s',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
               }}
             >
-              <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                {isSelected && <span style={{ color: ACCENT }}>✓</span>}
-                {isPlaying && <span style={{ color: '#2563eb', fontSize: '9px', animation: 'pulse 1s infinite' }}>♪</span>}
-                {v.name}
+              {/* Name + descriptor */}
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isSelected && <span style={{ color: '#e03535', marginRight: '5px' }}>✓</span>}
+                {name}
               </div>
+              {descriptor && (
+                <div style={{ fontSize: '12px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {descriptor}
+                </div>
+              )}
               {v.description && (
-                <div style={{ fontSize: '10px', color: COLORS.textTertiary, lineHeight: '1.4', marginBottom: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                <div style={{
+                  fontSize: '11px',
+                  color: '#666',
+                  lineHeight: '1.45',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
                   {v.description}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: '5px' }}>
+
+              {/* Action row */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px', alignItems: 'center' }}>
+                {/* Preview pill */}
                 <button
                   onClick={e => handlePreview(e, v)}
                   disabled={isLoading}
-                  style={{ ...S.btnSecondary(isLoading || isPlaying), fontSize: '10px', padding: '4px 8px', flex: 1, border: isPlaying ? '1px solid #2563eb' : undefined, color: isPlaying ? '#2563eb' : undefined }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    background: 'transparent',
+                    border: '1px solid #444',
+                    borderRadius: '20px',
+                    color: isPlaying ? '#e03535' : '#aaa',
+                    fontSize: '11px',
+                    padding: '3px 10px',
+                    cursor: isLoading ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'color 0.12s, border-color 0.12s',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
+                  {isPlaying && (
+                    <span style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      background: '#e03535',
+                      display: 'inline-block',
+                      animation: 'vb-pulse 0.8s ease-in-out infinite',
+                      flexShrink: 0,
+                    }} />
+                  )}
                   {isLoading ? '…' : isPlaying ? '■ Stop' : previewUrls[v.id] ? '▶ Replay' : '▶ Preview'}
                 </button>
-                <button
-                  onClick={e => { e.stopPropagation(); onSelect(v); }}
-                  style={{ ...S.btnSecondary(isSelected), fontSize: '10px', padding: '4px 8px', flex: 1, background: isSelected ? 'rgba(224,53,53,0.12)' : undefined, color: isSelected ? ACCENT : undefined, border: isSelected ? `1px solid ${ACCENT}55` : undefined }}
-                >
-                  {isSelected ? '✓ Selected' : 'Select'}
-                </button>
+
+                {/* Select — visible on hover or when selected */}
+                {(isHovered || isSelected) && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onSelect(v); }}
+                    style={{
+                      background: isSelected ? 'transparent' : '#e03535',
+                      border: `1px solid ${isSelected ? '#e03535' : '#e03535'}`,
+                      borderRadius: '20px',
+                      color: isSelected ? '#e03535' : '#fff',
+                      fontSize: '11px',
+                      padding: '3px 10px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.12s',
+                    }}
+                  >
+                    {isSelected ? '✓ Selected' : 'Select'}
+                  </button>
+                )}
               </div>
+
               {previewErrors[v.id] && (
-                <div style={{ fontSize: '9px', color: COLORS.error, marginTop: '4px', wordBreak: 'break-word' }}>
+                <div style={{ fontSize: '9px', color: '#e03535', marginTop: '2px', wordBreak: 'break-word' }}>
                   {previewErrors[v.id]}
                 </div>
               )}
             </div>
           );
         })}
-        {filtered.length === 0 && (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: COLORS.textTertiary, fontSize: '12px', padding: '24px 0' }}>
-            No voices match "{search}"
+
+        {visible.length === 0 && (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#555', fontSize: '12px', padding: '32px 0' }}>
+            No voices match your filters.
           </div>
         )}
       </div>
+
+      {/* Pulse keyframe — injected once */}
+      <style>{`@keyframes vb-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
     </div>
   );
 }
