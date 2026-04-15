@@ -18,6 +18,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const APP_URL = process.env.APP_URL || 'https://forge-gamma-pied.vercel.app';
 
+// Episode limits per plan per month
 const PLAN_LIMITS = { creator: 4, studio: 12, pro: 30 };
 
 const PLANS = {
