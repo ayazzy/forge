@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { generateCartesiaSpeech, getCartesiaVoices, claude, uploadAsset } from "../../lib/api";
 import { injectV3Tags } from "../../lib/analysis";
 import { S, VOICE_PALETTE, COLORS, ACCENT, renderTagged } from "../../styles/theme";
@@ -6,34 +6,72 @@ import { extractJSON } from "../../lib/parseJSON";
 
 // Voice browser: 3-col grid of Cartesia voices with preview
 function VoiceBrowser({ voices, onSelect, selected, previewText }) {
-  const [previewing, setPreviewing] = useState(null);
+  const [loading, setLoading] = useState(null);   // voice.id currently fetching
+  const [playing, setPlaying] = useState(null);   // voice.id currently playing
   const [previewUrls, setPreviewUrls] = useState({});
   const [previewErrors, setPreviewErrors] = useState({});
   const [search, setSearch] = useState('');
+  const currentAudio = useRef(null);              // single shared Audio instance
 
   const filtered = voices.filter(v =>
     !search || v.name?.toLowerCase().includes(search.toLowerCase()) ||
     v.description?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handlePreview = async (voice) => {
-    if (previewing === voice.id) return;
-    if (previewUrls[voice.id]) {
-      new Audio(previewUrls[voice.id]).play();
+  const stopCurrent = () => {
+    if (currentAudio.current) {
+      currentAudio.current.pause();
+      currentAudio.current.onended = null;
+      currentAudio.current = null;
+    }
+    setPlaying(null);
+  };
+
+  const playUrl = (url, voiceId) => {
+    stopCurrent();
+    const audio = new Audio(url);
+    currentAudio.current = audio;
+    setPlaying(voiceId);
+    audio.onended = () => {
+      if (currentAudio.current === audio) {
+        currentAudio.current = null;
+        setPlaying(null);
+      }
+    };
+    audio.play().catch(e => {
+      console.error('Playback failed:', e);
+      setPlaying(null);
+    });
+  };
+
+  const handlePreview = async (e, voice) => {
+    e.stopPropagation();
+
+    // Already playing this voice — stop it
+    if (playing === voice.id) {
+      stopCurrent();
       return;
     }
-    setPreviewing(voice.id);
+
+    // Cached URL — play immediately
+    if (previewUrls[voice.id]) {
+      playUrl(previewUrls[voice.id], voice.id);
+      return;
+    }
+
+    // Fetch from Cartesia
+    setLoading(voice.id);
     setPreviewErrors(prev => ({ ...prev, [voice.id]: null }));
     try {
       const text = previewText?.slice(0, 150) || 'Hello, this is a preview of how this voice sounds for your podcast or YouTube channel.';
       const url = await generateCartesiaSpeech(text, voice.id, 1.0);
       setPreviewUrls(prev => ({ ...prev, [voice.id]: url }));
-      new Audio(url).play();
-    } catch (e) {
-      console.error('Preview failed:', e);
-      setPreviewErrors(prev => ({ ...prev, [voice.id]: e.message || 'Preview failed' }));
+      playUrl(url, voice.id);
+    } catch (err) {
+      console.error('Preview failed:', err);
+      setPreviewErrors(prev => ({ ...prev, [voice.id]: err.message || 'Preview failed' }));
     } finally {
-      setPreviewing(null);
+      setLoading(null);
     }
   };
 
@@ -48,21 +86,25 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', maxHeight: '380px', overflowY: 'auto', paddingRight: '2px' }}>
         {filtered.map(v => {
           const isSelected = selected?.includes(v.id);
+          const isPlaying = playing === v.id;
+          const isLoading = loading === v.id;
           return (
             <div
               key={v.id}
+              onClick={() => onSelect(v)}
               style={{
                 background: isSelected ? 'rgba(224,53,53,0.08)' : COLORS.surfaceSecondary,
-                border: `1px solid ${isSelected ? ACCENT + '55' : COLORS.border}`,
+                border: `1px solid ${isPlaying ? '#2563eb' : isSelected ? ACCENT + '55' : COLORS.border}`,
                 borderRadius: '8px',
                 padding: '12px',
                 cursor: 'pointer',
                 transition: 'border-color 0.15s',
+                boxShadow: isPlaying ? '0 0 0 2px rgba(37,99,235,0.2)' : 'none',
               }}
-              onClick={() => onSelect(v)}
             >
-              <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isSelected && <span style={{ color: ACCENT, marginRight: '4px' }}>✓</span>}
+              <div style={{ fontSize: '12px', fontWeight: '600', color: COLORS.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                {isSelected && <span style={{ color: ACCENT }}>✓</span>}
+                {isPlaying && <span style={{ color: '#2563eb', fontSize: '9px', animation: 'pulse 1s infinite' }}>♪</span>}
                 {v.name}
               </div>
               {v.description && (
@@ -70,13 +112,21 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
                   {v.description}
                 </div>
               )}
-              <button
-                onClick={e => { e.stopPropagation(); handlePreview(v); }}
-                style={{ ...S.btnSecondary(previewing === v.id), fontSize: '10px', padding: '4px 8px', width: '100%' }}
-                disabled={previewing === v.id}
-              >
-                {previewing === v.id ? '…' : previewUrls[v.id] ? '▶ Replay' : '▶ Preview'}
-              </button>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button
+                  onClick={e => handlePreview(e, v)}
+                  disabled={isLoading}
+                  style={{ ...S.btnSecondary(isLoading || isPlaying), fontSize: '10px', padding: '4px 8px', flex: 1, border: isPlaying ? '1px solid #2563eb' : undefined, color: isPlaying ? '#2563eb' : undefined }}
+                >
+                  {isLoading ? '…' : isPlaying ? '■ Stop' : previewUrls[v.id] ? '▶ Replay' : '▶ Preview'}
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onSelect(v); }}
+                  style={{ ...S.btnSecondary(isSelected), fontSize: '10px', padding: '4px 8px', flex: 1, background: isSelected ? 'rgba(224,53,53,0.12)' : undefined, color: isSelected ? ACCENT : undefined, border: isSelected ? `1px solid ${ACCENT}55` : undefined }}
+                >
+                  {isSelected ? '✓ Selected' : 'Select'}
+                </button>
+              </div>
               {previewErrors[v.id] && (
                 <div style={{ fontSize: '9px', color: COLORS.error, marginTop: '4px', wordBreak: 'break-word' }}>
                   {previewErrors[v.id]}
