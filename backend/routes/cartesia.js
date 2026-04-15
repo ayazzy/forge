@@ -101,10 +101,13 @@ router.get('/voices', async (req, res) => {
     }
     const all = await response.json();
     const voices = Array.isArray(all) ? all : (all.voices || []);
-    // Filter to English voices only
+    console.log(`[cartesia/voices] total from API: ${voices.length}`);
+    // Filter to English voices — include any voice where language contains 'en'
+    // or where language is absent (treat as English)
     const english = voices.filter(v =>
-      !v.language || v.language === 'en' || v.language?.startsWith('en-')
+      !v.language || v.language.toLowerCase().includes('en')
     );
+    console.log(`[cartesia/voices] after english filter: ${english.length}`);
     voicesCache = english;
     voicesCacheAt = now;
     res.json(english);
