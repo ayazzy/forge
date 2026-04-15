@@ -8,6 +8,7 @@ import { extractJSON } from "../../lib/parseJSON";
 function VoiceBrowser({ voices, onSelect, selected, previewText }) {
   const [previewing, setPreviewing] = useState(null);
   const [previewUrls, setPreviewUrls] = useState({});
+  const [previewErrors, setPreviewErrors] = useState({});
   const [search, setSearch] = useState('');
 
   const filtered = voices.filter(v =>
@@ -22,6 +23,7 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
       return;
     }
     setPreviewing(voice.id);
+    setPreviewErrors(prev => ({ ...prev, [voice.id]: null }));
     try {
       const text = previewText?.slice(0, 150) || 'Hello, this is a preview of how this voice sounds for your podcast or YouTube channel.';
       const url = await generateCartesiaSpeech(text, voice.id, 1.0);
@@ -29,6 +31,7 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
       new Audio(url).play();
     } catch (e) {
       console.error('Preview failed:', e);
+      setPreviewErrors(prev => ({ ...prev, [voice.id]: e.message || 'Preview failed' }));
     } finally {
       setPreviewing(null);
     }
@@ -74,6 +77,11 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
               >
                 {previewing === v.id ? '…' : previewUrls[v.id] ? '▶ Replay' : '▶ Preview'}
               </button>
+              {previewErrors[v.id] && (
+                <div style={{ fontSize: '9px', color: COLORS.error, marginTop: '4px', wordBreak: 'break-word' }}>
+                  {previewErrors[v.id]}
+                </div>
+              )}
             </div>
           );
         })}

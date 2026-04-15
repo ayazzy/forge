@@ -39,7 +39,7 @@ async function cartesiaTTSChunk(text, voiceId, speed) {
       'X-API-Key': process.env.CARTESIA_API_KEY,
     },
     body: JSON.stringify({
-      model_id: 'sonic-2024-10-01',
+      model_id: 'sonic-2',
       transcript: text,
       voice: { mode: 'id', id: voiceId },
       output_format: { container: 'mp3', encoding: 'mp3', sample_rate: 44100 },
@@ -86,6 +86,9 @@ router.get('/voices', async (req, res) => {
     if (voicesCache && now - voicesCacheAt < VOICES_TTL) {
       return res.json(voicesCache);
     }
+    if (!process.env.CARTESIA_API_KEY) {
+      return res.status(500).json({ error: 'CARTESIA_API_KEY is not configured on the server.' });
+    }
     const response = await fetch(`${CARTESIA_BASE}/voices`, {
       headers: {
         'Cartesia-Version': '2024-10-01',
@@ -93,7 +96,8 @@ router.get('/voices', async (req, res) => {
       },
     });
     if (!response.ok) {
-      return res.status(502).json({ error: 'Failed to fetch voices from Cartesia.' });
+      const body = await response.text().catch(() => '');
+      return res.status(502).json({ error: `Cartesia ${response.status}: ${body || 'unknown error'}` });
     }
     const all = await response.json();
     const voices = Array.isArray(all) ? all : (all.voices || []);
