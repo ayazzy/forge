@@ -829,8 +829,23 @@ Return ONLY valid JSON:
 
           {anyGenerated && (
             <div style={{ display: "flex", gap: "8px" }}>
-              <button style={{ ...S.btnApprove, flex: 1, justifyContent: "center" }} onClick={() => onApprove({ segments, voices, audioUrls })}>
-                Approve &amp; Continue →
+              <button
+                style={{
+                  ...S.btnApprove,
+                  flex: 1,
+                  justifyContent: "center",
+                  ...(!allGenerated || generatingAll ? {
+                    opacity: 0.4,
+                    cursor: 'not-allowed',
+                    filter: 'grayscale(0.4)',
+                  } : {}),
+                }}
+                disabled={!allGenerated || generatingAll}
+                onClick={() => onApprove({ segments, voices, audioUrls })}
+              >
+                {generatingAll || !allGenerated
+                  ? `Generate all segments first (${segments.filter(s => !audioUrls[s.id]).length} remaining)`
+                  : 'Approve & Continue →'}
               </button>
               {allGenerated && (
                 <>
