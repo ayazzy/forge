@@ -236,6 +236,80 @@ Return ONLY valid JSON:
     setZipping(false);
   };
 
+  const downloadFullNarration = async () => {
+    if (!segments || !allGenerated) return;
+    try {
+      const GAP_SECONDS = 0.5;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) { alert("Web Audio API not supported in this browser."); return; }
+      const ctx = new AudioCtx();
+
+      // Fetch and decode all segments in order
+      const buffers = [];
+      for (const seg of segments) {
+        const url = audioUrls[seg.id];
+        if (!url) continue;
+        const res = await fetch(url);
+        const arrayBuf = await res.arrayBuffer();
+        const decoded = await ctx.decodeAudioData(arrayBuf);
+        buffers.push(decoded);
+      }
+      if (!buffers.length) return;
+
+      const sampleRate = buffers[0].sampleRate;
+      const channels = buffers[0].numberOfChannels;
+      const gapSamples = Math.floor(GAP_SECONDS * sampleRate);
+      const totalSamples = buffers.reduce((acc, b) => acc + b.length, 0) + gapSamples * (buffers.length - 1);
+
+      const combined = ctx.createBuffer(channels, totalSamples, sampleRate);
+      let offset = 0;
+      for (let bi = 0; bi < buffers.length; bi++) {
+        const buf = buffers[bi];
+        for (let ch = 0; ch < channels; ch++) {
+          combined.getChannelData(ch).set(buf.getChannelData(ch), offset);
+        }
+        offset += buf.length;
+        if (bi < buffers.length - 1) offset += gapSamples;
+      }
+
+      // Encode as WAV
+      const numSamples = combined.length * channels;
+      const wavBuf = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(wavBuf);
+      const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, channels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * channels * 2, true);
+      view.setUint16(32, channels * 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, numSamples * 2, true);
+      let sampleOffset = 44;
+      for (let i = 0; i < combined.length; i++) {
+        for (let ch = 0; ch < channels; ch++) {
+          const s = Math.max(-1, Math.min(1, combined.getChannelData(ch)[i]));
+          view.setInt16(sampleOffset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+          sampleOffset += 2;
+        }
+      }
+
+      const blob = new Blob([wavBuf], { type: 'audio/wav' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${data.episode ? `ep${data.episode}_` : 'episode_'}narration_full.wav`;
+      a.click();
+      ctx.close();
+    } catch (e) {
+      alert("Could not combine audio: " + e.message);
+    }
+  };
+
   const allGenerated = segments && segments.every(s => !!audioUrls[s.id]);
   const anyGenerated = segments && segments.some(s => !!audioUrls[s.id]);
   const selectedVoiceIds = voices.map(v => v.voiceId).filter(Boolean);
@@ -502,9 +576,14 @@ Return ONLY valid JSON:
                 Approve &amp; Continue →
               </button>
               {allGenerated && (
-                <button style={S.btnSecondary(false)} onClick={downloadAllZip} disabled={zipping}>
-                  {zipping ? "Zipping…" : "↓ ZIP"}
-                </button>
+                <>
+                  <button style={S.btnSecondary(false)} onClick={downloadFullNarration} title="Concatenated WAV with 0.5s gaps between segments">
+                    ↓ WAV
+                  </button>
+                  <button style={S.btnSecondary(false)} onClick={downloadAllZip} disabled={zipping}>
+                    {zipping ? "Zipping…" : "↓ ZIP"}
+                  </button>
+                </>
               )}
             </div>
           )}

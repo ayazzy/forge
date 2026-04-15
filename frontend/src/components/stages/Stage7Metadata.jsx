@@ -11,11 +11,13 @@ function Stage6({ data, saved, onApprove, isComplete, onBackToSummary }) {
   const generate = async () => {
     setLoading(true); setMeta(null);
     const totalMins = data.analysis ? `${data.analysis.minutes}:${String(data.analysis.seconds).padStart(2, "0")}` : "15:00";
+    const titleStyle = data.channelProfile?.prompt_config?.titleStyle || "";
     const raw = await claude(`You are a YouTube SEO strategist for ${data.channelProfile?.channel_name || "a YouTube channel"}.
 Generate complete upload metadata for this video.
 Topic: ${data.topic}
 Episode: ${data.episode || ""}
 Video duration: ${totalMins}
+${titleStyle ? `Title style guidance for this channel: ${titleStyle}` : ""}
 Script excerpt (first 600 words):
 ${data.script?.substring(0, 2400) || ""}
 Return ONLY valid JSON:
@@ -37,6 +39,26 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
   };
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 2000); };
+
+  const chaptersText = (chapters) =>
+    (chapters || []).map(c => `${c.time} ${c.title}`).join('\n');
+
+  const descriptionWithChapters = (m) => {
+    if (!m) return '';
+    const chapters = chaptersText(m.chapters);
+    return chapters ? `${m.description}\n\n${chapters}` : m.description;
+  };
+
+  const copyAllMetadata = (m) => {
+    if (!m) return;
+    const title = m.titles?.[0]?.text || '';
+    const block = [
+      title ? `TITLE\n${title}` : '',
+      `DESCRIPTION\n${descriptionWithChapters(m)}`,
+      m.tags?.length ? `TAGS\n${m.tags.join(', ')}` : '',
+    ].filter(Boolean).join('\n\n');
+    copy(block, 'all');
+  };
 
   return (
     <div>
@@ -96,8 +118,12 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
           <div style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
               <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text }}>Description</div>
-              <button style={S.btnSecondary(copied === "desc")} onClick={() => copy(meta.description, "desc")}>
-                {copied === "desc" ? "Copied!" : "Copy"}
+              <button
+                style={S.btnSecondary(copied === "desc")}
+                onClick={() => copy(descriptionWithChapters(meta), "desc")}
+                title="Copies description + chapter timestamps — ready to paste into YouTube Studio"
+              >
+                {copied === "desc" ? "Copied!" : "Copy for YouTube"}
               </button>
             </div>
             <div style={{ fontSize: "13px", color: COLORS.textSecondary, lineHeight: "1.8", whiteSpace: "pre-wrap" }}>{meta.description}</div>
@@ -107,8 +133,9 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
           <div style={{ ...S.card, marginBottom: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
               <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text }}>Tags</div>
-              <button style={S.btnSecondary(copied === "tags")} onClick={() => copy(meta.tags?.join(", "), "tags")}>
-                {copied === "tags" ? "Copied!" : "Copy All"}
+              <button style={S.btnSecondary(copied === "tags")} onClick={() => copy(meta.tags?.join(", "), "tags")}
+                title="Paste directly into YouTube Studio tags field">
+                {copied === "tags" ? "Copied!" : "Copy Tags"}
               </button>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -142,6 +169,13 @@ CRITICAL: All chapter timestamps must fall within the ${totalMins} video duratio
 
           <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
             <button style={S.btnSecondary(false)} onClick={generate}>Regenerate</button>
+            <button
+              style={S.btnSecondary(copied === "all")}
+              onClick={() => copyAllMetadata(meta)}
+              title="Copies title + description + chapters + tags as a formatted block"
+            >
+              {copied === "all" ? "Copied!" : "Copy All"}
+            </button>
             <button style={{ ...S.btnApprove, flex: 1, justifyContent: "center" }} onClick={() => { if (meta) onApprove({ meta }); }}>
               Looks good, continue →
             </button>

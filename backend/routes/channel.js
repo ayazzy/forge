@@ -173,7 +173,7 @@ tone definitions:
 // Generate custom template from channel description
 router.post('/generate-template', async (req, res) => {
   try {
-    const { channel_name, description, tone, video_length } = req.body;
+    const { channel_name, description, tone, video_length, top_videos } = req.body;
 
     const toneDescriptions = {
       dark_serious: 'Dark, cinematic, serious, weighty. Content that makes viewers think deeply.',
@@ -188,6 +188,10 @@ router.post('/generate-template', async (req, res) => {
     const wordsPerMinute = 130;
     const targetWords = Math.round(video_length * wordsPerMinute);
 
+    const topVideosBlock = top_videos && top_videos.length > 0
+      ? `\nTop-performing video titles (use these to understand what resonates with this audience):\n${top_videos.slice(0, 10).map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+      : '';
+
     const prompt = `You are setting up a custom AI production template for a YouTube channel on Forge, an AI video production platform.
 
 Based on this creator's channel description, generate a fully customised production template.
@@ -195,15 +199,18 @@ Based on this creator's channel description, generate a fully customised product
 Channel name: ${channel_name}
 Channel description: ${description}
 Tone: ${toneDescriptions[tone] || tone}
-Target video length: ${video_length} minutes (~${targetWords} words)
+Target video length: ${video_length} minutes (~${targetWords} words)${topVideosBlock}
 
 Generate a JSON template that will power every video this channel produces. Be highly specific to their niche — avoid generic instructions.
 
 Return ONLY valid JSON in this exact structure:
 {
-  "researchPrompt": "A detailed instruction for how to research topics for this specific channel. What angle to take, what details to look for, what sources to prioritise, what to avoid. 3-5 sentences.",
-  "scriptPrompt": "A detailed instruction for the writing style, narrative structure, register, and approach for this channel's scripts. Include specific guidance on opening style, pacing, and closing. 3-5 sentences.",
-  "imageStyle": "A Midjourney/image generation style string describing the visual aesthetic for this channel. Include medium, lighting, mood, composition style. 1-2 sentences.",
+  "researchPrompt": "A detailed instruction for how to research topics for this specific channel. What angle to take, what sources to prioritise, what specific details to hunt for, what to avoid. 8-12 sentences — be thorough and niche-specific.",
+  "scriptPrompt": "A detailed instruction for the writing style, narrative structure, register, hooks, pacing, and closing approach specific to this channel. Include concrete guidance on sentence rhythm, vocabulary level, use of emotion, and story arc. 8-12 sentences.",
+  "imageStyle": "A Midjourney/image generation style string describing the visual aesthetic for this channel. Include medium, lighting, mood, era, composition style. 1-2 sentences.",
+  "exampleParagraph": "A 2-3 sentence example paragraph written IN the channel's voice — shows tone, vocabulary, and rhythm. This is used as a style reference when generating scripts.",
+  "titleStyle": "A 2-3 sentence description of what makes a great title for this channel — format patterns, emotional triggers, length, use of numbers or questions. Used to guide title generation.",
+  "audienceProfile": "A 2-3 sentence profile of who watches this channel — their age, interests, prior knowledge, why they watch, what they get from it. Used to calibrate research depth and script complexity.",
   "targetWordCount": ${targetWords},
   "wordsPerMinute": ${wordsPerMinute},
   "moods": {
@@ -253,6 +260,9 @@ Generate exactly 5-6 moods that are specific and relevant to this channel's cont
           researchPrompt: template.researchPrompt,
           scriptPrompt: template.scriptPrompt,
           imageStyle: template.imageStyle,
+          exampleParagraph: template.exampleParagraph,
+          titleStyle: template.titleStyle,
+          audienceProfile: template.audienceProfile,
           targetWordCount: template.targetWordCount,
           wordsPerMinute: template.wordsPerMinute,
         },

@@ -29,33 +29,42 @@ function Stage4({ data, onApprove, saved, isComplete, onBackToSummary }) {
     setImages({});
     setThumbnailConcepts(null);
     const imagePoints = selectImagePoints(data.analysis.sections);
-    setProgress({ current: 0, total: imagePoints.length + 1 });
-    const results = [];
+    setProgress({ current: 0, total: 2 });
     const channelName = data.channelProfile?.channel_name || "a YouTube channel";
     const imageStyle = data.channelProfile?.prompt_config?.imageStyle || `oil painting texture, no text, ${STYLE_BASE_DEFAULT}`;
     const era = data.era || "unspecified";
-    for (let i = 0; i < imagePoints.length; i++) {
-      const pt = imagePoints[i];
+
+    // Single Haiku call for all image prompts — sees full script for visual coherence
+    try {
       const raw = await claude(`You are an image prompt expert for ${channelName}.
-Write ONE image prompt for this paragraph:
-"${pt.text.substring(0, 400)}"
-Mood: ${pt.mood}
+Full script context:
+${(data.script || "").substring(0, 3000)}
+
 Era/Region: ${era}
-Visual style for this channel: ${imageStyle}
+Visual style: ${imageStyle}
 
-Also write ONE sentence (max 15 words) explaining why a new image is needed here.
+Write ONE image prompt per scene below. Each prompt must visually advance the story arc. Maintain visual coherence and consistent style across the full set.
+
+Scenes to cover (in order):
+${imagePoints.map((pt, i) => `${i + 1}. [Mood: ${pt.mood}] "${pt.text.substring(0, 250)}"`).join('\n')}
+
 Return ONLY valid JSON:
-{"prompt":"...","why":"...","segmentIndex":${i}}`, 600, 'haiku');
-      let prompt = raw, why = "";
-      const p = extractJSON(raw);
-      if (p?.prompt) { prompt = `${p.prompt}, ${imageStyle}`; why = p.why || ""; }
-      else { prompt = `${raw}, ${imageStyle}`; }
-      results.push({ ...pt, prompt, why, imageNumber: i + 1, segmentIndex: i });
-      setPrompts([...results]);
-      setProgress({ current: i + 1, total: imagePoints.length + 1 });
+{"prompts":[{"imageNumber":1,"mood":"...","prompt":"full image prompt including style flags","why":"one sentence max 15 words"}]}`, 2000, 'haiku');
+      const parsed = extractJSON(raw);
+      if (parsed?.prompts) {
+        const results = imagePoints.map((pt, i) => {
+          const p = parsed.prompts[i] || {};
+          const prompt = p.prompt ? `${p.prompt}, ${imageStyle}` : `${pt.text.substring(0, 100)}, ${imageStyle}`;
+          return { ...pt, prompt, why: p.why || "", imageNumber: i + 1, segmentIndex: i };
+        });
+        setPrompts(results);
+      }
+    } catch (e) {
+      console.warn("Image prompt generation failed:", e);
     }
+    setProgress({ current: 1, total: 2 });
 
-    // Combined thumbnail concepts call
+    // Thumbnail concepts call
     try {
       const thumbRaw = await claude(`You are a YouTube thumbnail strategist for ${channelName}.
 Generate 3 thumbnail concepts. One image-led, one text-led, one emotion-led.
@@ -67,7 +76,7 @@ Return ONLY valid JSON:
       const thumbParsed = extractJSON(thumbRaw);
       if (thumbParsed?.concepts) setThumbnailConcepts(thumbParsed.concepts);
     } catch {}
-    setProgress({ current: imagePoints.length + 1, total: imagePoints.length + 1 });
+    setProgress({ current: 2, total: 2 });
     setLoading(false);
   }, [data]);
 

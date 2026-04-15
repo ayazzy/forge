@@ -48,6 +48,7 @@ export default function Onboarding() {
   const [customTone, setCustomTone] = useState('');
   const [importedVideoLength, setImportedVideoLength] = useState(null);
   const [customLength, setCustomLength] = useState('');
+  const [importedTopVideos, setImportedTopVideos] = useState([]);
 
   // Returning users who are already configured skip onboarding
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function Onboarding() {
       setImportedSubscribers(result.subscribers || null);
       setImportedTone(result.tone || null);
       setImportedVideoLength(result.video_length || null);
+      setImportedTopVideos(result.top_videos || []);
       setStep(1);
     } catch (e) {
       setImportError(e.message || 'Could not analyze channel. Check the URL and try again.');
@@ -99,6 +101,7 @@ export default function Onboarding() {
         ...form,
         tone: form.tone === 'custom' ? customTone.trim() : form.tone,
         video_length: form.video_length === 0 ? parseInt(customLength) : form.video_length,
+        top_videos: importedTopVideos.length > 0 ? importedTopVideos : undefined,
       };
       await generateChannelTemplate(payload);
       navigate('/pricing');

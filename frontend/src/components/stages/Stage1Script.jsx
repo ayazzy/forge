@@ -401,10 +401,14 @@ function Stage1({ onApprove, saved, researchData, isComplete, onBackToSummary, b
     const scriptInstruction = researchData?.channelProfile?.prompt_config?.scriptPrompt ||
       'Write an engaging script appropriate for the topic and channel style.';
     const targetWords = researchData?.channelProfile?.prompt_config?.targetWordCount || 2000;
+    const exampleParagraph = researchData?.channelProfile?.prompt_config?.exampleParagraph || '';
+    const audienceProfile = researchData?.channelProfile?.prompt_config?.audienceProfile || '';
 
     const prompt = `You are the writer for ${researchData?.channelProfile?.channel_name || 'a YouTube channel'}.
 
 ${scriptInstruction}
+${audienceProfile ? `\nAudience: ${audienceProfile}` : ''}
+${exampleParagraph ? `\nVoice & style reference (match this exactly):\n"${exampleParagraph}"` : ''}
 
 Write a full narration script of approximately ${targetWords} words.
 Topic: ${topic}

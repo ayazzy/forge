@@ -1,7 +1,98 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { claude } from "../../lib/api";
 import { S, COLORS, APPROACH_COLORS } from "../../styles/theme";
 import { extractJSON } from "../../lib/parseJSON";
+
+// ─── Canvas thumbnail mockup ─────────────────────────────────────────────────
+function ThumbnailCanvas({ concept }) {
+  const canvasRef = useRef(null);
+  const W = 640, H = 360; // 16:9
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const bg = concept.colorPalette?.bg || '#0f0f0f';
+    const textPrimary = concept.colorPalette?.textPrimary || '#ffffff';
+    const textAccent = concept.colorPalette?.textAccent || '#ff3333';
+
+    // Background
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle gradient overlay for depth
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0.15)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Accent bar at bottom
+    ctx.fillStyle = textAccent;
+    ctx.fillRect(0, H - 6, W, 6);
+
+    // Helper: measure & wrap text
+    const wrapText = (text, maxWidth, font) => {
+      ctx.font = font;
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    // Headline
+    const headlineFont = 'bold 52px Impact, Arial Black, sans-serif';
+    const headlineLines = wrapText(concept.headline || '', W - 80, headlineFont);
+    ctx.font = headlineFont;
+    ctx.fillStyle = textPrimary;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const lineH = 60;
+    const totalH = headlineLines.length * lineH + (concept.subtext ? 36 : 0);
+    let y = (H - totalH) / 2 + lineH / 2;
+
+    // Text shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 3;
+
+    for (const ln of headlineLines) {
+      ctx.fillText(ln, W / 2, y);
+      y += lineH;
+    }
+
+    // Subtext
+    if (concept.subtext) {
+      ctx.shadowBlur = 6;
+      ctx.font = 'bold 24px Arial, sans-serif';
+      ctx.fillStyle = textAccent;
+      ctx.fillText(concept.subtext, W / 2, y + 4);
+    }
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }, [concept]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={W}
+      height={H}
+      style={{ width: '100%', display: 'block', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
+    />
+  );
+}
 
 function Stage5({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const research = data.research;
@@ -98,14 +189,9 @@ Return ONLY valid JSON:
                   </span>
                 </div>
 
-                {/* 16:9 preview */}
-                <div style={{ background: "#0f0f0f", aspectRatio: "16/9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: "10px", overflow: "hidden", position: "relative", marginBottom: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
-                  <div style={{ fontSize: "26px", color: "#fff", fontWeight: "800", lineHeight: "1.2", textAlign: "center", padding: "0 20px", textShadow: "0 2px 8px rgba(0,0,0,0.8)", fontFamily: "Impact, Arial Black, sans-serif" }}>
-                    {c.headline}
-                  </div>
-                  {c.subtext && (
-                    <div style={{ fontSize: "13px", color: "#ccc", marginTop: "8px", textAlign: "center" }}>{c.subtext}</div>
-                  )}
+                {/* Canvas thumbnail mockup */}
+                <div style={{ marginBottom: "16px" }}>
+                  <ThumbnailCanvas concept={c} />
                 </div>
 
                 {/* Image prompt */}

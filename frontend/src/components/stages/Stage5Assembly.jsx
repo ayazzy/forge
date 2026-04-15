@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { S, COLORS } from "../../styles/theme";
 import { generateSRT } from "../../lib/srt";
+import { generateProductionBriefPDF } from "../../lib/productionBrief";
 
 const ROW_H = { narration: 56, visuals: 64, sound: 44 };
 const LABEL_W = 76;
@@ -48,6 +49,7 @@ function Stage7({ data, onApprove, isComplete, onBackToSummary }) {
   // ── state ────────────────────────────────────────────────────────────────
   const [activeItem, setActiveItem] = useState(0);
   const [exported, setExported] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const scriptRef = useRef(null);
   const activeSegRef = useRef(null);
@@ -71,6 +73,34 @@ function Stage7({ data, onApprove, isComplete, onBackToSummary }) {
     a.href = URL.createObjectURL(blob);
     a.download = `ep${episode || "xx"}_subtitles.srt`;
     a.click();
+  };
+
+  const downloadPDF = async () => {
+    setPdfExporting(true);
+    try {
+      await generateProductionBriefPDF({
+        ...data,
+        segments,
+        voices,
+        audioUrls,
+        imagePrompts: prompts,
+        images,
+        soundDesign: cues,
+        meta,
+        research,
+        topic,
+        episode,
+        channelProfile: data.channelProfile,
+        analysis: data.analysis,
+        thumbnailConcepts: data.thumbnailConcepts,
+        selectedConcept: data.selectedConcept,
+        voiceSegments: segments,
+      });
+    } catch (e) {
+      console.error("PDF export failed:", e);
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
   const exportPackage = async () => {
@@ -411,6 +441,13 @@ function Stage7({ data, onApprove, isComplete, onBackToSummary }) {
               ↓ Subtitles (.srt)
             </button>
           )}
+          <button
+            onClick={downloadPDF}
+            disabled={pdfExporting}
+            style={{ ...sidebarBtn, background: "transparent", color: COLORS.textSecondary, border: `1px solid ${COLORS.border}` }}
+          >
+            {pdfExporting ? "Building…" : "↓ Production Brief (PDF)"}
+          </button>
           <button
             onClick={exportPackage}
             style={{ ...sidebarBtn, background: exported ? "#0a2a1a" : "#1e1e1e", color: exported ? "#4ade80" : COLORS.text, border: `1px solid ${exported ? "#14532d" : COLORS.border}` }}
