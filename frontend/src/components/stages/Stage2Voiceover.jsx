@@ -5,9 +5,7 @@ import { S, VOICE_PALETTE, COLORS, ACCENT, renderTagged } from "../../styles/the
 import { extractJSON } from "../../lib/parseJSON";
 
 // ─── Voice tag inference ──────────────────────────────────────────────────────
-const TAG_RULES = [
-  { tag: 'Male',      terms: ['male', 'man', 'guy', 'masculine', 'baritone', 'tenor', 'his'] },
-  { tag: 'Female',    terms: ['female', 'woman', 'girl', 'feminine', 'her', 'soprano'] },
+const QUALITY_TAG_RULES = [
   { tag: 'Deep',      terms: ['deep', 'bass', 'low', 'gravelly', 'resonant', 'booming', 'baritone'] },
   { tag: 'Warm',      terms: ['warm', 'smooth', 'rich', 'friendly', 'mellow', 'soothing', 'gentle'] },
   { tag: 'Energetic', terms: ['energetic', 'upbeat', 'lively', 'dynamic', 'enthusiastic', 'bright', 'animated', 'exciting'] },
@@ -15,9 +13,52 @@ const TAG_RULES = [
 ];
 const FILTER_TAGS = ['All', 'Male', 'Female', 'Deep', 'Warm', 'Energetic', 'Calm'];
 
+// Accent inference — checks API fields first, then description text
+const ACCENT_OPTIONS = ['Any Accent', 'American', 'British', 'Australian', 'Indian'];
+const ACCENT_RULES = [
+  { accent: 'British',    terms: ['british', 'uk', 'english accent', 'london', 'oxford', 'received pronunciation', 'rp accent', 'transatlantic'] },
+  { accent: 'Australian', terms: ['australian', 'aussie', 'sydney', 'melbourne'] },
+  { accent: 'Indian',     terms: ['indian', 'hindi', 'south asian'] },
+  { accent: 'American',   terms: ['american', 'us accent', 'neutral american', 'midwest', 'southern american', 'new york', 'california'] },
+];
+
+function inferAccent(voice) {
+  // Prefer structured API fields
+  const apiAccent = voice.accent || voice.language_accent || voice.locale;
+  if (apiAccent) {
+    const a = apiAccent.toLowerCase();
+    if (a.includes('british') || a.includes('gb') || a === 'en-gb') return 'British';
+    if (a.includes('australian') || a === 'en-au') return 'Australian';
+    if (a.includes('indian') || a === 'en-in') return 'Indian';
+    if (a.includes('american') || a === 'en-us' || a === 'en') return 'American';
+  }
+  // Fall back to description text
+  const haystack = `${voice.name} ${voice.description || ''}`.toLowerCase();
+  for (const { accent, terms } of ACCENT_RULES) {
+    if (terms.some(t => haystack.includes(t))) return accent;
+  }
+  return null; // unknown
+}
+
+// Gender detection: check female first so 'female' doesn't match the 'male' substring
+function inferGender(voice) {
+  const haystack = `${voice.name} ${voice.description || ''}`.toLowerCase();
+  const femaleTerms = ['female', 'woman', 'girl', 'feminine', 'she ', 'she,', 'she.', " her ", 'soprano'];
+  const maleTerms   = ['male', 'man', 'guy', 'masculine', 'baritone', 'tenor', 'he ', 'he,', 'he.', ' his '];
+  if (femaleTerms.some(t => haystack.includes(t))) return 'Female';
+  if (maleTerms.some(t => haystack.includes(t))) return 'Male';
+  return null;
+}
+
 function inferTags(voice) {
   const haystack = `${voice.name} ${voice.description || ''}`.toLowerCase();
-  return TAG_RULES.filter(r => r.terms.some(t => haystack.includes(t))).map(r => r.tag);
+  const tags = [];
+  const gender = inferGender(voice);
+  if (gender) tags.push(gender);
+  for (const { tag, terms } of QUALITY_TAG_RULES) {
+    if (terms.some(t => haystack.includes(t))) tags.push(tag);
+  }
+  return tags;
 }
 
 // Split Cartesia name like "Damon - Commanding Narrator" into parts
@@ -35,10 +76,11 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
   const [previewErrors, setPreviewErrors] = useState({});
   const [search, setSearch]         = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
+  const [accentFilter, setAccentFilter]  = useState('Any Accent');
   const currentAudio = useRef(null);
 
-  // Pre-compute tags for every voice once
-  const voicesWithTags = voices.map(v => ({ ...v, _tags: inferTags(v) }));
+  // Pre-compute tags + accent for every voice once
+  const voicesWithTags = voices.map(v => ({ ...v, _tags: inferTags(v), _accent: inferAccent(v) }));
 
   const toggleFilter = (tag) => {
     if (tag === 'All') { setActiveFilters([]); return; }
@@ -54,7 +96,8 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
       v.description?.toLowerCase().includes(q);
     const matchesFilters = activeFilters.length === 0 ||
       activeFilters.every(f => v._tags.includes(f));
-    return matchesSearch && matchesFilters;
+    const matchesAccent = accentFilter === 'Any Accent' || v._accent === accentFilter;
+    return matchesSearch && matchesFilters && matchesAccent;
   });
 
   const stopCurrent = () => {
@@ -97,7 +140,7 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
 
   return (
     <div>
-      {/* Search + filter row */}
+      {/* Search + accent + filter row */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
         <input
           style={{
@@ -108,7 +151,7 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
             fontSize: '13px',
             padding: '6px 12px',
             outline: 'none',
-            width: '160px',
+            width: '150px',
             flexShrink: 0,
             fontFamily: 'inherit',
           }}
@@ -116,6 +159,26 @@ function VoiceBrowser({ voices, onSelect, selected, previewText }) {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <select
+          value={accentFilter}
+          onChange={e => setAccentFilter(e.target.value)}
+          style={{
+            background: accentFilter !== 'Any Accent' ? '#1e1010' : '#1a1a1a',
+            border: `1px solid ${accentFilter !== 'Any Accent' ? '#e03535' : '#333'}`,
+            borderRadius: '8px',
+            color: accentFilter !== 'Any Accent' ? '#e03535' : '#aaa',
+            fontSize: '12px',
+            padding: '5px 10px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            flexShrink: 0,
+            outline: 'none',
+          }}
+        >
+          {ACCENT_OPTIONS.map(a => (
+            <option key={a} value={a} style={{ background: '#1a1a1a', color: '#fff' }}>{a}</option>
+          ))}
+        </select>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
           {FILTER_TAGS.map(tag => {
             const active = tag === 'All' ? activeFilters.length === 0 : activeFilters.includes(tag);
