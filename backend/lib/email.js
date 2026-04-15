@@ -84,7 +84,7 @@ export async function sendTrialEndingEmail(toEmail, daysLeft) {
             </p>
             <p>Subscribe now to keep your access — no interruptions to your workflow.</p>
             <a href="${APP_URL}/pricing" class="cta">Choose a plan →</a>
-            <p style="margin-top:8px;">Plans start at $49/mo. Cancel anytime.</p>
+            <p style="margin-top:8px;">Plans start at $39/mo. Cancel anytime.</p>
           </div>
           <div class="footer">Forge · hello@tryforge.studio</div>
         </div>

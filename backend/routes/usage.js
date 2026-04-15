@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 
   res.json({
     claude_calls: usage?.claude_calls || 0,
-    elevenlabs_characters: usage?.elevenlabs_characters || 0,
+    cartesia_characters: usage?.cartesia_characters || 0,
     ideogram_generations: usage?.ideogram_generations || 0,
     month: month,
     limits,

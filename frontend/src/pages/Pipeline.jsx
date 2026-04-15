@@ -747,9 +747,9 @@ Return ONLY valid JSON:
               }
               // Free user — show upgrade section
               const planOptions = [
-                { id: 'creator', name: 'Creator', price: '$49', episodes: 5 },
-                { id: 'studio', name: 'Studio', price: '$99', episodes: 11, popular: true },
-                { id: 'pro', name: 'Pro', price: '$179', episodes: 30 },
+                { id: 'creator', name: 'Creator', price: '$39', episodes: 4 },
+                { id: 'studio', name: 'Studio', price: '$79', episodes: 12, popular: true },
+                { id: 'pro', name: 'Pro', price: '$149', episodes: 30 },
               ];
               return (
                 <div style={{ width: '100%', maxWidth: '600px', marginTop: '8px' }}>
