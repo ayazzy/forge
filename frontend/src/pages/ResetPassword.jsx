@@ -53,6 +53,7 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [ready, setReady] = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
 
   useEffect(() => {
     // Supabase handles the recovery token from the URL hash fragment automatically
@@ -66,7 +67,11 @@ export default function ResetPassword() {
     if (window.location.hash.includes('type=recovery')) {
       setReady(true);
     }
-    return () => subscription.unsubscribe();
+    // If the token isn't validated within 8s, the link is likely expired or invalid
+    const timeout = setTimeout(() => {
+      setLinkExpired(true);
+    }, 8000);
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -96,10 +101,22 @@ export default function ResetPassword() {
         <div style={cardStyle}>
           <div style={{ fontSize: "13px", fontWeight: "800", letterSpacing: "3px", textAlign: "center", marginBottom: "32px", color: ACCENT }}>FORGE</div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "15px", color: "#888" }}>Validating reset link…</div>
-            <div style={{ fontSize: "12px", color: "#555", marginTop: "12px" }}>
-              If nothing happens, <a href="/forgot-password" style={{ color: ACCENT, textDecoration: "none" }}>request a new link</a>.
-            </div>
+            {linkExpired ? (
+              <>
+                <div style={{ fontSize: "15px", color: "#e03535", fontWeight: "600", marginBottom: "10px" }}>Reset link expired or invalid</div>
+                <div style={{ fontSize: "13px", color: "#888", lineHeight: "1.6" }}>
+                  This link may have already been used or has expired.{" "}
+                  <a href="/forgot-password" style={{ color: ACCENT, textDecoration: "none" }}>Request a new one</a>.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: "15px", color: "#888" }}>Validating reset link…</div>
+                <div style={{ fontSize: "12px", color: "#555", marginTop: "12px" }}>
+                  If nothing happens, <a href="/forgot-password" style={{ color: ACCENT, textDecoration: "none" }}>request a new link</a>.
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

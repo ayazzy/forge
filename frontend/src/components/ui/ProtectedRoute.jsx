@@ -24,6 +24,7 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const [billing, setBilling] = useState(null);
+  const [billingError, setBillingError] = useState(false);
   const [billingLoading, setBillingLoading] = useState(requiresPlan);
   const [activating, setActivating] = useState(false);
   const [profileChecked, setProfileChecked] = useState(_profileHasChannel !== null);
@@ -37,8 +38,8 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
 
   const fetchBilling = () =>
     getBilling()
-      .then(data => { _billingCache = data; _billingCacheAt = Date.now(); setBilling(data); return data; })
-      .catch(() => { setBilling(null); return null; });
+      .then(data => { _billingCache = data; _billingCacheAt = Date.now(); setBilling(data); setBillingError(false); return data; })
+      .catch(() => { setBillingError(true); return null; });
 
   useEffect(() => {
     if (!requiresPlan) {
@@ -105,19 +106,23 @@ export default function ProtectedRoute({ children, requiresPlan = false }) {
   if (!user) return <Navigate to="/login" replace />;
 
   if (requiresPlan) {
-    const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
-    if (!isActive) {
-      // Free users who haven't used their free episode yet get access
-      if (billing?.free_episode_used === false) {
-        // fall through to allow access
-      } else {
-        let reason = 'no_plan';
-        if (billing?.subscription_status === 'canceled') {
-          reason = 'canceled';
-        } else if (billing?.free_episode_used === true) {
-          reason = 'free_used';
+    // If billing fetch failed, don't block access — better to let through than false-redirect to /pricing
+    if (!billingError) {
+      const isActive = billing?.subscription_status === 'active' || billing?.subscription_status === 'trialing';
+      if (!isActive) {
+        // Free users who haven't used their free episode yet get access
+        if (billing?.free_episode_used === false) {
+          // fall through to allow access
+        } else if (billing !== null) {
+          // Only redirect if we actually have billing data confirming no plan
+          let reason = 'no_plan';
+          if (billing?.subscription_status === 'canceled') {
+            reason = 'canceled';
+          } else if (billing?.free_episode_used === true) {
+            reason = 'free_used';
+          }
+          return <Navigate to={`/pricing?reason=${reason}`} replace />;
         }
-        return <Navigate to={`/pricing?reason=${reason}`} replace />;
       }
     }
 

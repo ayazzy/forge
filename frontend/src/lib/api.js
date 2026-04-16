@@ -10,6 +10,17 @@ async function getAuthHeader() {
   return session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
 }
 
+// Wraps fetch with a 30s AbortController timeout. Not used for SSE streams.
+async function apiFetch(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // model: 'sonnet' (default, creative/analytical) | 'haiku' (structured/templated)
 export async function claudeStream(prompt, onChunk, maxTokens = 4000, model = 'sonnet') {
   const { data: { session } } = await supabase.auth.getSession();
@@ -51,7 +62,7 @@ export async function claude(prompt, maxTokens = 1000, model = 'sonnet') {
   const { data: { session } } = await supabase.auth.getSession();
   const headers = { 'Content-Type': 'application/json' };
   if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-  const res = await fetch(`${API_BASE}/api/claude`, {
+  const res = await apiFetch(`${API_BASE}/api/claude`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ prompt, maxTokens, model }),
@@ -64,14 +75,14 @@ export async function claude(prompt, maxTokens = 1000, model = 'sonnet') {
 // Cartesia TTS — replaces ElevenLabs
 export async function getCartesiaVoices() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/cartesia/voices`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/cartesia/voices`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch voices');
   return res.json();
 }
 
 export async function generateCartesiaSpeech(text, voiceId, speed = 1.0) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/cartesia/generate`, {
+  const res = await apiFetch(`${API_BASE}/api/cartesia/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ text, voiceId, speed }),
@@ -92,7 +103,7 @@ export async function generateSpeech(text, voiceId, settings = {}) {
     .replace(/\[pause\]/g, ' ')
     .replace(/\[dramatic tone\]/g, '');
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/elevenlabs/${voiceId}`, {
+  const res = await apiFetch(`${API_BASE}/api/elevenlabs/${voiceId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({
@@ -113,7 +124,7 @@ export async function generateSpeech(text, voiceId, settings = {}) {
 
 export async function generateIdeogramImage(prompt) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/ideogram`, {
+  const res = await apiFetch(`${API_BASE}/api/ideogram`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ prompt }),
@@ -130,7 +141,7 @@ export async function uploadAsset({ episodeId, stage, type, segmentIndex, fileBl
     reader.onloadend = () => resolve(reader.result.split(',')[1]);
     reader.readAsDataURL(fileBlob);
   });
-  const res = await fetch(`${API_BASE}/api/assets/upload`, {
+  const res = await apiFetch(`${API_BASE}/api/assets/upload`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ episodeId, stage, type, segmentIndex, fileData: base64, fileName, mimeType }),
@@ -141,35 +152,35 @@ export async function uploadAsset({ episodeId, stage, type, segmentIndex, fileBl
 
 export async function getAssets(episodeId) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/assets/${episodeId}`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/assets/${episodeId}`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch assets');
   return res.json();
 }
 
 export async function getChannelProfile() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/channel`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/channel`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch channel profile');
   return res.json();
 }
 
 export async function getChannelStats() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/channel/stats`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/channel/stats`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch channel stats');
   return res.json();
 }
 
 export async function getChannelSnapshots() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/channel/snapshots`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/channel/snapshots`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch channel snapshots');
   return res.json();
 }
 
 export async function saveChannelProfile(data) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/channel`, {
+  const res = await apiFetch(`${API_BASE}/api/channel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(data),
@@ -180,7 +191,7 @@ export async function saveChannelProfile(data) {
 
 export async function importChannelFromUrl(channelUrl) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/channel/import-from-url`, {
+  const res = await apiFetch(`${API_BASE}/api/channel/import-from-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ channelUrl }),
@@ -194,7 +205,7 @@ export async function importChannelFromUrl(channelUrl) {
 
 export async function generateChannelTemplate(data) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/channel/generate-template`, {
+  const res = await apiFetch(`${API_BASE}/api/channel/generate-template`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(data),
@@ -205,14 +216,14 @@ export async function generateChannelTemplate(data) {
 
 export async function getProfile() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/profile`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/profile`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch profile');
   return res.json();
 }
 
 export async function deleteAccount() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/account`, {
+  const res = await apiFetch(`${API_BASE}/api/account`, {
     method: 'DELETE',
     headers: { ...authHeader },
   });
@@ -222,28 +233,28 @@ export async function deleteAccount() {
 
 export async function getUsage() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/usage`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/usage`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch usage');
   return res.json();
 }
 
 export async function getEpisodes() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/episodes`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/episodes`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch episodes');
   return res.json();
 }
 
 export async function getEpisode(id) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/episodes/${id}`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/episodes/${id}`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch episode');
   return res.json();
 }
 
 export async function createEpisode(data) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/episodes`, {
+  const res = await apiFetch(`${API_BASE}/api/episodes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(data),
@@ -254,7 +265,7 @@ export async function createEpisode(data) {
 
 export async function updateEpisode(id, data) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/episodes/${id}`, {
+  const res = await apiFetch(`${API_BASE}/api/episodes/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(data),
@@ -265,14 +276,14 @@ export async function updateEpisode(id, data) {
 
 export async function getCachedTrends() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/trends`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/trends`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch trends');
   return res.json();
 }
 
 export async function refreshTrends() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/trends/refresh`, {
+  const res = await apiFetch(`${API_BASE}/api/trends/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
   });
@@ -282,7 +293,7 @@ export async function refreshTrends() {
 
 export async function generateTrendingTopics(niche, channelDescription) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/trends/generate`, {
+  const res = await apiFetch(`${API_BASE}/api/trends/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ niche, channelDescription }),
@@ -293,7 +304,7 @@ export async function generateTrendingTopics(niche, channelDescription) {
 
 export async function validateTopic(topic, channelDescription) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/trends/validate`, {
+  const res = await apiFetch(`${API_BASE}/api/trends/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ topic, channelDescription }),
@@ -304,7 +315,7 @@ export async function validateTopic(topic, channelDescription) {
 
 export async function getSavedTopics() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/saved-topics`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/saved-topics`, { headers: { ...authHeader } });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || 'Failed to fetch saved topics');
@@ -314,7 +325,7 @@ export async function getSavedTopics() {
 
 export async function saveTopic(topic) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/saved-topics`, {
+  const res = await apiFetch(`${API_BASE}/api/saved-topics`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(topic),
@@ -328,7 +339,7 @@ export async function saveTopic(topic) {
 
 export async function deleteSavedTopic(id) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/saved-topics/${id}`, {
+  const res = await apiFetch(`${API_BASE}/api/saved-topics/${id}`, {
     method: 'DELETE',
     headers: { ...authHeader },
   });
@@ -341,7 +352,7 @@ export async function deleteSavedTopic(id) {
 
 export async function deleteEpisode(id) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/episodes/${id}`, {
+  const res = await apiFetch(`${API_BASE}/api/episodes/${id}`, {
     method: 'DELETE',
     headers: { ...authHeader },
   });
@@ -351,14 +362,14 @@ export async function deleteEpisode(id) {
 
 export async function getBilling() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/stripe/billing`, { headers: { ...authHeader } });
+  const res = await apiFetch(`${API_BASE}/api/stripe/billing`, { headers: { ...authHeader } });
   if (!res.ok) throw new Error('Failed to fetch billing');
   return res.json();
 }
 
 export async function createCheckoutSession(plan = 'pro', annual = false) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/stripe/create-checkout-session`, {
+  const res = await apiFetch(`${API_BASE}/api/stripe/create-checkout-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ plan, annual }),
@@ -370,7 +381,7 @@ export async function createCheckoutSession(plan = 'pro', annual = false) {
 
 export async function createPortalSession() {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/stripe/create-portal-session`, {
+  const res = await apiFetch(`${API_BASE}/api/stripe/create-portal-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
   });
@@ -381,7 +392,7 @@ export async function createPortalSession() {
 
 export async function createPackCheckoutSession(pack) {
   const authHeader = await getAuthHeader();
-  const res = await fetch(`${API_BASE}/api/stripe/create-pack-checkout-session`, {
+  const res = await apiFetch(`${API_BASE}/api/stripe/create-pack-checkout-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ pack }),
