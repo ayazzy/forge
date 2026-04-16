@@ -43,9 +43,7 @@ Suggest 4-8 music cues, 3-5 ambient shifts, 6-12 sound effects. All timestamps w
         'haiku'
       );
 
-      console.log('[Stage3] raw response:', raw);
       const parsed = extractJSON(raw);
-      console.log('[Stage3] parsed:', parsed);
 
       if (parsed && parsed.musicBed !== undefined) {
         setCues({

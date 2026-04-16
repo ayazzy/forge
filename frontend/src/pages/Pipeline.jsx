@@ -624,8 +624,8 @@ Return ONLY valid JSON:
                   </div>
                   <button
                     onClick={runOneShot}
-                    disabled={!oneShotTopic.trim()}
-                    style={{ background: oneShotTopic.trim() ? ACCENT : '#222', color: oneShotTopic.trim() ? '#fff' : '#444', border: 'none', borderRadius: '8px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: oneShotTopic.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+                    disabled={!oneShotTopic.trim() || oneShotRunning}
+                    style={{ background: oneShotTopic.trim() && !oneShotRunning ? ACCENT : '#222', color: oneShotTopic.trim() && !oneShotRunning ? '#fff' : '#444', border: 'none', borderRadius: '8px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: oneShotTopic.trim() && !oneShotRunning ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
                   >
                     Generate everything →
                   </button>

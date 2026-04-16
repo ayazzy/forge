@@ -39,7 +39,10 @@ export default function Dashboard() {
   const [loadingTrends, setLoadingTrends] = useState(true);
   const [channelStats, setChannelStats] = useState(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(subscriptionSuccess);
-  const [deleteModal, setDeleteModal] = useState(null); // episodeId to delete
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [episodesError, setEpisodesError] = useState(false);
+  const [trendsError, setTrendsError] = useState(false);
 
   useEffect(() => {
     if (!profileLoading && !hasProfile) navigate('/onboarding', { replace: true });
@@ -48,14 +51,14 @@ export default function Dashboard() {
   useEffect(() => {
     getEpisodes()
       .then(setEpisodes)
-      .catch(console.error)
+      .catch(() => setEpisodesError(true))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     getCachedTrends()
       .then(data => setTrendingTopics((data.topics || []).slice(0, 4)))
-      .catch(console.error)
+      .catch(() => setTrendsError(true))
       .finally(() => setLoadingTrends(false));
   }, []);
 
@@ -89,8 +92,10 @@ export default function Dashboard() {
   };
 
   const handleDeleteEpisode = async (id) => {
+    setDeletingId(id);
     await deleteEpisode(id).catch(console.error);
     setEpisodes(prev => prev.filter(ep => ep.id !== id));
+    setDeletingId(null);
   };
 
   if (loading || profileLoading) return (
@@ -115,7 +120,7 @@ export default function Dashboard() {
       {showSuccessBanner && (
         <div style={{ background: '#0a2a1a', borderBottom: '1px solid #14532d', padding: '12px 40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '13px', color: '#4ade80', flex: 1 }}>
-            🎉 <strong>Welcome to Forge Pro!</strong> Your 14-day free trial has started. No charge until your trial ends.
+            🎉 <strong>You're all set!</strong> Your subscription is now active. Start your first episode whenever you're ready.
           </span>
           <button
             onClick={() => setShowSuccessBanner(false)}
@@ -267,7 +272,11 @@ export default function Dashboard() {
               <Link to="/pipeline" style={{ fontSize: '11px', color: ACCENT, textDecoration: 'none', fontWeight: '600' }}>+ New</Link>
             </div>
 
-            {episodes.length === 0 ? (
+            {episodesError ? (
+              <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: '#e03535' }}>Couldn't load episodes. Try refreshing.</div>
+              </div>
+            ) : episodes.length === 0 ? (
               <div style={{ padding: '40px 0', textAlign: 'center' }}>
                 <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.4 }}>🎬</div>
                 <div style={{ fontSize: '16px', color: '#fff', fontWeight: '600', marginBottom: '8px' }}>No episodes yet</div>
@@ -316,10 +325,11 @@ export default function Dashboard() {
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteModal(ep.id); }}
-                          style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '14px', padding: '2px 4px', lineHeight: '1', fontFamily: 'inherit' }}
+                          disabled={deletingId === ep.id}
+                          style={{ background: 'none', border: 'none', color: deletingId === ep.id ? '#333' : '#444', cursor: deletingId === ep.id ? 'default' : 'pointer', fontSize: '14px', padding: '2px 4px', lineHeight: '1', fontFamily: 'inherit' }}
                           title="Delete episode"
                         >
-                          ×
+                          {deletingId === ep.id ? '…' : '×'}
                         </button>
                       </div>
                     </div>
@@ -448,6 +458,10 @@ export default function Dashboard() {
               [1, 2, 3, 4].map(i => (
                 <div key={i} style={{ background: '#1a1a1a', border: '1px solid #222', borderLeft: '3px solid #333', borderRadius: '10px', padding: '14px 16px', height: '90px', opacity: 0.5 }} />
               ))
+            ) : trendsError ? (
+              <div style={{ gridColumn: '1 / -1', fontSize: '13px', color: '#555', padding: '16px 0' }}>
+                Couldn't load trending topics. <Link to="/trends" style={{ color: ACCENT, textDecoration: 'none' }}>Go to Trends →</Link>
+              </div>
             ) : trendingTopics.length > 0 ? (
               trendingTopics.map((t, i) => (
                 <Link

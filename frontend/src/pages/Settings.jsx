@@ -56,6 +56,10 @@ export default function Settings() {
   // Billing
   const [billing, setBilling] = useState(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState(false);
+
+  // Save error
+  const [saveError, setSaveError] = useState(false);
 
   // Danger zone
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -72,13 +76,12 @@ export default function Settings() {
           if (KNOWN_TONE_VALUES.has(data.tone)) {
             setTone(data.tone);
           } else {
-            // Stored value is a custom description string
             setTone("custom");
             setCustomTone(data.tone);
           }
         }
       }
-    }).catch(() => {});
+    }).catch(err => console.error('Failed to load channel profile:', err));
     getBilling().then(setBilling).catch(() => {});
   }, []);
 
@@ -86,6 +89,7 @@ export default function Settings() {
     setSavingChannel(true);
     setTemplateError(false);
     setSavedChannel(false);
+    setSaveError(false);
     const toneToSave = tone === "custom" ? customTone || "custom" : tone;
     try {
       await saveChannelProfile({
@@ -111,6 +115,7 @@ export default function Settings() {
       }
     } catch (e) {
       console.error('Channel save failed:', e);
+      setSaveError(true);
     } finally {
       setSavingChannel(false);
     }
@@ -135,11 +140,14 @@ export default function Settings() {
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
+    setPortalError(false);
     try {
       const { url } = await createPortalSession();
       window.location.href = url;
-    } catch (e) { console.error(e); }
-    finally { setPortalLoading(false); }
+    } catch (e) {
+      console.error(e);
+      setPortalError(true);
+    } finally { setPortalLoading(false); }
   };
 
   const handleDeleteAccount = async () => {
@@ -283,6 +291,11 @@ export default function Settings() {
                   ✓ Saved — your production template has been updated. New episodes will use your updated settings.
                 </div>
               )}
+              {saveError && (
+                <div style={{ fontSize: "12px", color: "#e03535", background: "rgba(224,53,53,0.08)", border: "1px solid rgba(224,53,53,0.2)", borderRadius: "6px", padding: "8px 12px" }}>
+                  Failed to save. Please try again.
+                </div>
+              )}
               <span style={{ fontSize: "12px", color: "#555" }}>
                 Saving updates your channel settings and regenerates your production template.{" "}
                 For a full reset,{" "}
@@ -348,9 +361,12 @@ export default function Settings() {
                   )}
                   <div style={{ flex: 1 }} />
                   {isPaid ? (
-                    <button onClick={handleManageBilling} disabled={portalLoading} style={{ background: "none", border: "1px solid #333", color: "#aaa", fontSize: "13px", padding: "7px 14px", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit", fontWeight: "500" }}>
-                      {portalLoading ? "Loading…" : "Manage Billing →"}
-                    </button>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                      <button onClick={handleManageBilling} disabled={portalLoading} style={{ background: "none", border: "1px solid #333", color: "#aaa", fontSize: "13px", padding: "7px 14px", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit", fontWeight: "500" }}>
+                        {portalLoading ? "Loading…" : "Manage Billing →"}
+                      </button>
+                      {portalError && <div style={{ fontSize: "11px", color: "#e03535" }}>Couldn't open billing portal. Try again.</div>}
+                    </div>
                   ) : (
                     <Link to="/pricing" style={{ fontSize: "13px", color: ACCENT, textDecoration: "none", fontWeight: "600" }}>Upgrade →</Link>
                   )}

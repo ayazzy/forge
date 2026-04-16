@@ -96,12 +96,10 @@ export default function Trends() {
   });
 
   const handleToggleSave = async (result) => {
-    console.log('[Trends] handleToggleSave called, topic:', result.topic, 'savingTopic:', savingTopic);
     setSavingTopic(result.topic);
     setSaveError(null);
     try {
       const existing = savedTopics.find(t => t.topic === result.topic);
-      console.log('[Trends] existing saved?', existing ? 'yes, id=' + existing.id : 'no');
       if (existing) {
         await deleteSavedTopic(existing.id);
         setSavedTopics(prev => prev.filter(t => t.id !== existing.id));

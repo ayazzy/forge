@@ -54,7 +54,7 @@ export default function Onboarding() {
   useEffect(() => {
     getChannelProfile().then(profile => {
       if (profile?.is_configured) navigate('/dashboard', { replace: true });
-    }).catch(() => {});
+    }).catch(err => console.error('Failed to check channel profile:', err));
   }, []);
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
