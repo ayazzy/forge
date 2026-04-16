@@ -431,7 +431,9 @@ Return ONLY valid JSON:
           const blob = await res.blob();
           const segIndex = parseInt(seg.id.replace("seg-", ""), 10);
           const fileName = `${data.episode ? `ep${data.episode}_` : ""}seg${String(segIndex + 1).padStart(2, "0")}_${voice.name}.mp3`;
-          await uploadAsset({ episodeId: data.currentEpisodeId, stage: 2, type: "audio", segmentIndex: segIndex, fileBlob: blob, fileName, mimeType: "audio/mpeg" });
+          const asset = await uploadAsset({ episodeId: data.currentEpisodeId, stage: 2, type: "audio", segmentIndex: segIndex, fileBlob: blob, fileName, mimeType: "audio/mpeg" });
+          // Replace blob URL with persistent CDN URL so audio survives page reloads
+          if (asset?.url) setAudioUrls(prev => ({ ...prev, [seg.id]: asset.url }));
         } catch (uploadErr) { console.warn("Asset upload failed (non-blocking):", uploadErr); }
       }
     } catch (e) {

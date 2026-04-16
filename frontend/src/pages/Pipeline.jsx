@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useChannelProfile } from "../hooks/useChannelProfile";
+import { trackEvent } from "../lib/analytics";
 import { getEpisodes, createEpisode, updateEpisode, deleteEpisode, getAssets, getBilling, claude, claudeStream } from "../lib/api";
 import { extractJSON } from "../lib/parseJSON";
 import { invalidateBillingCache } from "../components/ui/ProtectedRoute";
@@ -83,8 +84,16 @@ export default function Pipeline() {
 
   useEffect(() => {
     const topicFromUrl = searchParams.get('topic');
-    if (topicFromUrl) {
-      setStageData(prev => ({ ...prev, 0: { ...prev[0], topicPrefill: topicFromUrl } }));
+    const contextFromUrl = searchParams.get('context');
+    if (topicFromUrl || contextFromUrl) {
+      setStageData(prev => ({
+        ...prev,
+        0: {
+          ...prev[0],
+          ...(topicFromUrl ? { topicPrefill: topicFromUrl } : {}),
+          ...(contextFromUrl ? { contextPrefill: contextFromUrl } : {}),
+        },
+      }));
     }
     // 3.1 — Check for localStorage backup (unsaved work from before first DB save)
     try {
@@ -159,6 +168,7 @@ export default function Pipeline() {
   };
 
   const handleApprove = async (stage, data) => {
+    trackEvent('Pipeline', 'stage_complete', `stage_${stage}`);
     // Capture previous version before overwriting
     const prevData = stageData[stage];
     const newHistory = prevData
@@ -293,6 +303,7 @@ export default function Pipeline() {
 
   const runOneShot = async () => {
     if (!oneShotTopic.trim() || oneShotRunning) return;
+    trackEvent('Pipeline', 'oneshot_run');
     setOneShotRunning(true);
     setCreditConfirmed(true); // One Shot creates an episode — mark as confirmed
     setOneShotScript('');

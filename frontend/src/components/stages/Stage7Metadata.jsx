@@ -30,7 +30,7 @@ Return ONLY valid JSON with no extra text before or after:
     {"option": "B", "text": "title option 2", "angle": "why this works"},
     {"option": "C", "text": "title option 3", "angle": "why this works"}
   ],
-  "description": "full YouTube description, 3-4 paragraphs, ends with channel tagline and 'New episodes monthly.'",
+  "description": "full YouTube description, 3-4 paragraphs. End with a single sentence channel tagline that fits the channel's voice — do not use generic phrases like 'New episodes monthly'.",
   "tags": ["tag1","tag2"],
   "category": "Education",
   "chapters": [{"time":"0:00","title":"chapter title"}]

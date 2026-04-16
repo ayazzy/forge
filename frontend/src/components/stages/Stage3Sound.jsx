@@ -202,14 +202,29 @@ Suggest 4-8 music cues, 3-5 ambient shifts, 6-12 sound effects. All timestamps w
           {cues.mixingGuide && (
             <div style={{ ...S.card, marginBottom: "20px" }}>
               <div style={{ fontSize: "13px", fontWeight: "600", color: COLORS.text, marginBottom: "12px" }}>Mixing Levels</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-                {Object.entries(cues.mixingGuide).map(([key, val]) => (
-                  <div key={key} style={S.statRow}>
-                    <span style={S.statLabel}>{key.replace(/([A-Z])/g, " $1")}</span>
-                    <span style={S.statValue}>{val}</span>
-                  </div>
-                ))}
+              <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: "8px", overflow: "hidden" }}>
+                {Object.entries(cues.mixingGuide)
+                  .filter(([key]) => key !== 'additionalNotes')
+                  .map(([key, val], i, arr) => {
+                    const LABELS = { narration: 'Narration', musicBed: 'Music Bed', ambientLayer: 'Ambient Layer', soundEffects: 'Sound Effects' };
+                    const label = LABELS[key] || key.replace(/([A-Z])/g, ' $1').trim();
+                    return (
+                      <div key={key} style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: i < arr.length - 1 ? `1px solid ${COLORS.border}` : 'none' }}>
+                        <div style={{ padding: '10px 14px', fontSize: '12px', fontWeight: '600', color: COLORS.textSecondary, background: COLORS.surfaceSecondary, borderRight: `1px solid ${COLORS.border}` }}>
+                          {label}
+                        </div>
+                        <div style={{ padding: '10px 14px', fontSize: '12px', color: COLORS.text, fontFamily: 'monospace' }}>
+                          {val}
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
+              {cues.mixingGuide.additionalNotes && (
+                <div style={{ marginTop: '12px', padding: '10px 14px', background: COLORS.surfaceSecondary, borderRadius: '8px', fontSize: '12px', color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: '1.7' }}>
+                  {cues.mixingGuide.additionalNotes}
+                </div>
+              )}
             </div>
           )}
 

@@ -1,8 +1,6 @@
 import { S, ACCENT, COLORS } from "../../styles/theme";
 
 function StageBar({ STAGES, activeStage, completedStages, onStageClick }) {
-  const pct = Math.round((completedStages.size / STAGES.length) * 100);
-  const allDone = completedStages.size === STAGES.length;
 
   return (
     <div style={{ background: COLORS.surface, borderBottom: `1px solid ${COLORS.border}` }}>
@@ -11,7 +9,7 @@ function StageBar({ STAGES, activeStage, completedStages, onStageClick }) {
         {STAGES.map((stage, i) => {
           const completed = completedStages.has(i);
           const active = activeStage === i;
-          const reachable = completed || active;
+          const reachable = completed || active || i <= activeStage;
           const isLast = i === STAGES.length - 1;
 
           return (
@@ -70,36 +68,6 @@ function StageBar({ STAGES, activeStage, completedStages, onStageClick }) {
         })}
       </div>
 
-      {/* Progress strip */}
-      <div style={{ padding: '0 40px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '11px', color: COLORS.textSecondary }}>
-          {completedStages.size === 0
-            ? 'Start by researching your topic'
-            : allDone
-            ? '✓ All stages complete'
-            : `${completedStages.size} of ${STAGES.length} stages complete`}
-        </div>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          background: allDone ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)',
-          border: `1px solid ${allDone ? 'rgba(74,222,128,0.3)' : '#2a2a2a'}`,
-          borderRadius: '20px',
-          padding: '4px 10px',
-        }}>
-          {allDone ? (
-            <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '700' }}>Done ✓</span>
-          ) : (
-            <>
-              <div style={{ width: '60px', height: '3px', background: '#2a2a2a', borderRadius: '2px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${pct}%`, background: ACCENT, borderRadius: '2px', transition: 'width 0.4s ease' }} />
-              </div>
-              <span style={{ fontSize: '11px', color: '#777', fontWeight: '600', minWidth: '30px' }}>{pct}%</span>
-            </>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

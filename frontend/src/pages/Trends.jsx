@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/ui/AppLayout';
 import { useChannelProfile } from '../hooks/useChannelProfile';
+import { trackEvent } from '../lib/analytics';
 import { getCachedTrends, refreshTrends, validateTopic, getSavedTopics, saveTopic, deleteSavedTopic } from '../lib/api';
 
 const fmtViews = (v) =>
@@ -78,18 +79,10 @@ export default function Trends() {
   };
 
   const sendToPipeline = (topic, result = null) => {
-    if (result) {
-      try {
-        sessionStorage.setItem('forge_trend_context', JSON.stringify({
-          topic: result.topic || topic,
-          competition: result.competitionLevel || null,
-          angle: result.angle || null,
-          ratio: result.evidenceRatio || null,
-          whyItWorks: result.whyItWorks || null,
-        }));
-      } catch {}
-    }
-    navigate(`/pipeline?topic=${encodeURIComponent(topic)}`);
+    trackEvent('Trends', 'topic_sent_to_pipeline', topic);
+    const params = new URLSearchParams({ topic });
+    if (result?.angle) params.set('context', result.angle);
+    navigate(`/pipeline?${params.toString()}`);
   };
   const channelName = channelProfile?.channel_name || 'your channel';
 
@@ -122,6 +115,7 @@ export default function Trends() {
           evidence_ratio: result.evidenceRatio,
         });
         setSavedTopics(prev => [saved, ...prev]);
+        trackEvent('Trends', 'topic_saved');
       }
     } catch (e) {
       console.error('[Trends] Failed to toggle save:', e);

@@ -1,0 +1,31 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /pipeline
+Disallow: /settings
+Disallow: /trends
+Disallow: /stats
+Disallow: /onboarding
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://www.tryforge.studio/sitemap.xml
+
+# LLM crawlers — explicitly welcome on public pages
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /

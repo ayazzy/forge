@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { trackEvent } from "../lib/analytics";
 
 const ACCENT = "#e03535";
 
@@ -75,6 +76,7 @@ export default function Login() {
     if (signInError) {
       setError(signInError.message);
     } else {
+      trackEvent('Auth', 'login');
       navigate(redirectTo);
     }
   };

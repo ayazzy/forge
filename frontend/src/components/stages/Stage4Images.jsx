@@ -30,7 +30,7 @@ function Stage4({ data, onApprove, saved, isComplete, onBackToSummary }) {
     setImages({});
     setThumbnailConcepts(null);
     const imagePoints = selectImagePoints(data.analysis.sections);
-    setProgress({ current: 0, total: 2 });
+    setProgress({ current: 0, total: imagePoints.length });
     const channelName = data.channelProfile?.channel_name || "a YouTube channel";
     const imageStyle = data.channelProfile?.prompt_config?.imageStyle || `oil painting texture, no text, ${STYLE_BASE_DEFAULT}`;
     const era = data.era || "unspecified";
@@ -63,7 +63,7 @@ Return ONLY valid JSON:
     } catch (e) {
       console.warn("Image prompt generation failed:", e);
     }
-    setProgress({ current: 1, total: 2 });
+    setProgress({ current: imagePoints.length, total: imagePoints.length });
 
     // Thumbnail concepts call
     try {
@@ -199,7 +199,9 @@ Return ONLY valid JSON:
       {loading && (
         <div style={{ ...S.card, marginBottom: "24px" }}>
           <div style={{ fontSize: "13px", color: COLORS.textSecondary, marginBottom: "10px" }}>
-            Building prompts {progress.current} / {progress.total}
+            {progress.current < progress.total
+              ? `Generating ${progress.total} image prompts…`
+              : `${progress.total} prompts ready · building thumbnail concepts…`}
           </div>
           <div style={{ background: COLORS.border, height: "3px", borderRadius: "2px" }}>
             <div style={{ height: "100%", background: "#2563eb", width: progress.total ? `${(progress.current / progress.total) * 100}%` : "0%", transition: "width 0.3s", borderRadius: "2px" }} />

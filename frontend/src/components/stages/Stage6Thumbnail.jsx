@@ -100,7 +100,7 @@ function Stage5({ data, onApprove, saved, isComplete, onBackToSummary }) {
   const prefilled = data.thumbnailConcepts || null;
   const [form, setForm] = useState({
     title: saved?.title || (data.topic && !data.topic.startsWith("TOPIC:") ? data.topic : research?.characterProfile?.name ? `The ${research.characterProfile.role}: ${research.characterProfile.name}` : data.topic?.split("\n")[0]?.replace(/^TOPIC:\s*/i, "") || ""),
-    subject: saved?.subject || (research ? `${research.characterProfile?.name}, ${research.characterProfile?.role}` : ""),
+    subject: saved?.subject || [research?.characterProfile?.name, research?.characterProfile?.role].filter(Boolean).join(", ") || "",
     moment: saved?.moment || research?.characterProfile?.arc?.split(".")[0] || "",
     period: saved?.period || data.era || "",
   });

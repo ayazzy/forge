@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Pipeline from "./pages/Pipeline";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -15,10 +16,20 @@ import ProtectedRoute from "./components/ui/ProtectedRoute";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
 import Onboarding from "./pages/Onboarding";
 import Stats from "./pages/Stats";
+import { initGA, trackPage } from "./lib/analytics";
+
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => { trackPage(location.pathname); }, [location.pathname]);
+  return null;
+}
 
 export default function App() {
+  useEffect(() => { initGA(); }, []);
+
   return (
     <ErrorBoundary>
+      <RouteTracker />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />

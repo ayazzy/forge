@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { createCheckoutSession, createPackCheckoutSession, getBilling } from "../lib/api";
+import { trackEvent } from "../lib/analytics";
 import AppLayout from "../components/ui/AppLayout";
 
 const ACCENT = "#e03535";
@@ -86,6 +87,7 @@ export default function Pricing() {
 
   const handlePlanCTA = async (planId) => {
     if (!user) { navigate("/signup"); return; }
+    trackEvent('Conversion', 'plan_cta_clicked', planId);
     setLoading(planId);
     setError(null);
     try {

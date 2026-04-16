@@ -1,0 +1,42 @@
+# Forge
+
+> AI-powered YouTube content production platform for creators
+
+Forge replaces the 5-tool scramble — research, script, voiceover, images, sound design, thumbnail, and metadata — with a single 8-stage pipeline built around your channel's voice. Creators go from blank page to publish-ready package in one sitting.
+
+## Key pages
+
+- [Home](https://www.tryforge.studio/): Full product overview, how it works, and pricing
+- [Pricing](https://www.tryforge.studio/pricing): Plans starting at $39/mo — first episode free, no credit card required
+- [Sign up](https://www.tryforge.studio/signup): Get started with one free episode
+
+## What Forge does
+
+Forge runs an 8-stage AI pipeline for every YouTube episode:
+
+1. **Research** — generates a niche-specific research brief using real YouTube trend data
+2. **Script** — writes a full narration script with hook scoring and retention analysis
+3. **Narration** — multi-voice TTS audio with segment-level voice casting
+4. **Visuals** — AI image prompts formatted for Midjourney/DALL-E, one per scene
+5. **Sound Design** — music bed, ambient layer, and SFX cues timed to the script
+6. **Assembly** — DAW-style timeline view with all tracks, SRT subtitles, production brief PDF
+7. **Thumbnail** — multiple concept briefs with layout, color, and text direction
+8. **Metadata** — YouTube-ready titles (A/B options), description, tags, chapters, and category
+
+**One Shot Mode** (Studio and Pro plans): runs the full pipeline from a single topic in one go — research, script, voice cast, image prompts, and metadata generated in parallel.
+
+## Plans
+
+- **Creator** — $39/mo (or $29/mo annual): 4 episodes/month, full 8-stage pipeline
+- **Studio** — $79/mo (or $59/mo annual): 12 episodes/month, One Shot Mode, priority support
+- **Pro** — $149/mo (or $119/mo annual): 30 episodes/month, One Shot Mode, priority support
+- **Episode packs** — 1 ep $8, 3 ep $20, 5 ep $30 (no subscription required)
+- **Free** — every new account gets 1 free episode, no credit card required
+
+## Who it's for
+
+YouTube creators in: history, finance, true crime, health & wellness, tech reviews, travel, documentary, science, and sports. Works for any niche — channel templates are generated from your channel's existing content and voice.
+
+## Optional: blocks
+
+No content on this site should be blocked from AI training or summarization.

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { trackEvent } from '../lib/analytics';
 
 function useScrollReveal(threshold = 0.12) {
   const ref = useRef(null);
@@ -368,7 +369,7 @@ export default function Landing() {
           <NavLink href="#trends">Trends</NavLink>
           <NavLink href="#pricing">Pricing</NavLink>
           <Link to="/login" style={{ fontSize:'14px',color:C.textSub }}>Sign in</Link>
-          <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'700',boxShadow:'0 4px 16px rgba(224,53,53,0.35)' }}>
+          <Link to="/signup" onClick={() => trackEvent('Landing', 'cta_clicked', 'nav_cta')} className="btn-red" style={{ background:C.red,color:'#fff',padding:'8px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'700',boxShadow:'0 4px 16px rgba(224,53,53,0.35)' }}>
             Make your first episode free →
           </Link>
         </div>
@@ -399,7 +400,7 @@ export default function Landing() {
             </p>
 
             <div style={{ display:'flex',gap:'12px',alignItems:'center',marginBottom:'36px' }}>
-              <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.28)' }}>
+              <Link to="/signup" onClick={() => trackEvent('Landing', 'cta_clicked', 'hero_primary')} className="btn-red" style={{ background:C.red,color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.28)' }}>
                 Make your first episode free →
               </Link>
               <a href="#how-it-works" className="btn-outline" style={{ color:C.textSub,padding:'13px 22px',borderRadius:'10px',fontSize:'15px',border:`1px solid ${C.border}`,background:'transparent' }}>
@@ -603,7 +604,7 @@ export default function Landing() {
                 </div>
               ))}
             </div>
-            <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'12px 24px',borderRadius:'8px',fontSize:'14px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.22)' }}>
+            <Link to="/signup" onClick={() => trackEvent('Landing', 'cta_clicked', 'trends_section')} className="btn-red" style={{ background:C.red,color:'#fff',padding:'12px 24px',borderRadius:'8px',fontSize:'14px',fontWeight:'700',boxShadow:'0 4px 14px rgba(224,53,53,0.22)' }}>
               Explore trends →
             </Link>
           </AnimateIn>
@@ -800,7 +801,7 @@ export default function Landing() {
                     </div>
                   ))}
                 </div>
-                <Link to="/signup" className={plan.highlighted?'btn-red':'btn-outline'} style={{ display:'block',textAlign:'center',background:plan.highlighted?C.red:'transparent',color:plan.highlighted?'#fff':C.textSub,padding:'12px 20px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',border:plan.highlighted?'none':`1px solid ${C.border}`,boxShadow:plan.highlighted?'0 4px 14px rgba(224,53,53,0.22)':'none' }}>
+                <Link to="/signup" onClick={() => trackEvent('Landing', 'cta_clicked', `pricing_${plan.name.toLowerCase()}`)} className={plan.highlighted?'btn-red':'btn-outline'} style={{ display:'block',textAlign:'center',background:plan.highlighted?C.red:'transparent',color:plan.highlighted?'#fff':C.textSub,padding:'12px 20px',borderRadius:'8px',fontSize:'14px',fontWeight:'600',border:plan.highlighted?'none':`1px solid ${C.border}`,boxShadow:plan.highlighted?'0 4px 14px rgba(224,53,53,0.22)':'none' }}>
                   {plan.cta}
                 </Link>
               </div>
@@ -817,7 +818,7 @@ export default function Landing() {
           <p style={{ fontSize:'16px',color:C.textSub,marginBottom:'32px',lineHeight:'1.7' }}>
             Stop switching tools. Stop losing hours. One pipeline, every stage, built around your channel.
           </p>
-          <Link to="/signup" className="btn-red" style={{ background:C.red,color:'#fff',padding:'14px 40px',borderRadius:'10px',fontSize:'16px',fontWeight:'700',boxShadow:'0 6px 24px rgba(224,53,53,0.28)' }}>
+          <Link to="/signup" onClick={() => trackEvent('Landing', 'cta_clicked', 'footer_cta')} className="btn-red" style={{ background:C.red,color:'#fff',padding:'14px 40px',borderRadius:'10px',fontSize:'16px',fontWeight:'700',boxShadow:'0 6px 24px rgba(224,53,53,0.28)' }}>
             Make your first episode free →
           </Link>
           <div style={{ marginTop:'14px',fontSize:'12px',color:C.textMuted }}>
