@@ -2,7 +2,7 @@
 
 **An AI production pipeline for YouTube creators.** Forge turns an episode idea into a ready-to-edit package (researched script, narration, sound cues, image prompts, thumbnail concepts and upload metadata) through eight reviewable stages, each one editable before the next runs.
 
-Built and launched as a paid SaaS at tryforge.studio (React on Vercel, Express on Railway, Supabase, Stripe). The product is no longer actively developed. The code is public as a reference implementation.
+Built as a full SaaS (auth, subscriptions, usage quotas, Stripe billing) but never launched publicly. It is no longer in development and is shared here as a reference implementation.
 
 ---
 
@@ -52,7 +52,7 @@ Known gaps are listed honestly in [`TODO.md`](TODO.md). The main one: the backen
 
 ## What I built
 
-Solo project: product, architecture, design and code, from first commit to live paid product (~16k lines of JS/JSX across 57 commits). I used Claude Code and Cursor as pair programmers. The pipeline design, prompt and model strategy, billing and quota model, and the cost optimisations above were my decisions. [`CLAUDE.md`](CLAUDE.md) is the living context file I kept for that workflow.
+Solo project: product, architecture, design and code, from first commit to a production-ready build (~16k lines of JS/JSX across 57 commits). I used Claude Code and Cursor as pair programmers. The pipeline design, prompt and model strategy, billing and quota model, and the cost optimisations above were my decisions. [`CLAUDE.md`](CLAUDE.md) is the living context file I kept for that workflow.
 
 ## Stack
 
